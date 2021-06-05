@@ -18,11 +18,21 @@ package org.apache.lucene.index;
 
 import org.apache.lucene.util.ArrayUtil;
 
+/**
+ * 该类的对象用来处理同一种域名的数据，有几种域名就有对应数量的ParallelPostingsArray对象，
+ * 也就是说下面的数组对于不同文档的相同的域是共用的，这点很重要。
+ *
+ * 下面所有的数组的下标值都是termID，termID用来区分不同term的唯一标识，
+ *
+ * 它是一个从0开始递增的值，每个term按照处理的先后顺序获得一个termID。
+ */
 class ParallelPostingsArray {
   final static int BYTES_PER_POSTING = 3 * Integer.BYTES;
 
   final int size;
+  // 每一个term在ByteBlockPool对象的buffers [ ] [ ]二维数组中的起始位置。
   final int[] textStarts; // maps term ID to the terms's text start in the bytesHash
+  // 数组元素为每一个term在IntBlockPool对象的buffers[ ] [ ] 二维数组中的位置。
   final int[] addressOffset; // maps term ID to current stream address
   final int[] byteStarts; // maps term ID to stream start offset in the byte pool
 

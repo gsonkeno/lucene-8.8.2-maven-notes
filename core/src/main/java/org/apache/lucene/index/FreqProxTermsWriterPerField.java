@@ -226,10 +226,21 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
       }
       //System.out.println("PA init freqs=" + writeFreqs + " pos=" + writeProx + " offs=" + writeOffsets);
     }
-
+    //记录每一个term在一篇文档中的词频frequencies
     int termFreqs[];                                   // # times this term occurs in the current doc
+    //记录每一个term上次出现是在哪一个文档中。
+    //对于同一个term来说，在某一篇文档中，只有所有该term都被处理结束才会写到倒排表中去，
+    // 否则的话，term在当前文档中的词频frequencies无法正确统计。
+    // 所以每次处理同一个term时，根据它目前所属的文档跟它上一次所属的文档来判断当前的操作是
+    // 统计词频还是将它写入到倒排表。
+    // 另外包含某个term的所有文档号是用差值存储，该数组用来计算差值。
     int lastDocIDs[];                                  // Last docID where this term occurred
+    // 记录每一个term上一次出现是在哪一个文档中。跟lastDocIDs[]数组不同的是，
+    // 数组元素是一个组合值，相同的是当term在新的文档中出现后，才将它上一次的文档号写入到倒排表中。
+    // 基于压缩存储，如果一个term在一篇文档中的词频只有1，
+    // 那么文档号跟词频的信息组合存储，否则文档号跟词频分开存储。
     int lastDocCodes[];                                // Code for prior doc
+    // 记录每一个term在当前文档中上一次出现的位置。
     int lastPositions[];                               // Last position where this term occurred
     int lastOffsets[];                                 // Last endOffset where this term occurred
 
