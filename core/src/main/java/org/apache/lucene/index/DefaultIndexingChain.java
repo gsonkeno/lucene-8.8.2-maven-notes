@@ -968,6 +968,7 @@ final class DefaultIndexingChain extends DocConsumer {
           // corrupt and should not be flushed to a
           // new segment:
           try {
+            //处理一个field的term的倒排索引的入口，包括词条，位置，词频，payLoad等信息
             termsHashPerField.add(invertState.termAttribute.getBytesRef(), docID);
           } catch (MaxBytesLengthExceededException e) {
             byte[] prefix = new byte[30];

@@ -153,6 +153,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
     for (int i = 0; i < streamCount; i++) {
       // initialize each stream with a slice we start with ByteBlockPool.FIRST_LEVEL_SIZE)
       // and grow as we need more space. see ByteBlockPool.LEVEL_SIZE_ARRAY
+      // 分配新块，5个字节
       final int upto = bytePool.newSlice(ByteBlockPool.FIRST_LEVEL_SIZE);
       termStreamAddressBuffer[streamAddressOffset + i] = upto + bytePool.byteOffset;
     }
@@ -174,6 +175,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
     // We are first in the chain so we must "intern" the
     // term text into textStart address
     // Get the text & hash of this term.
+    // 将写入termBytes的长度以及每个字符到buffer中
     int termID = bytesHash.add(termBytes);
     //System.out.println("add term=" + termBytesRef.utf8ToString() + " doc=" + docState.docID + " termID=" + termID);
     if (termID >= 0) { // New posting
@@ -202,7 +204,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
     byte[] bytes = bytePool.buffers[upto >> ByteBlockPool.BYTE_BLOCK_SHIFT];
     assert bytes != null;
     int offset = upto & ByteBlockPool.BYTE_BLOCK_MASK;
-    if (bytes[offset] != 0) {
+    if (bytes[offset] != 0) {//处在slice块的末尾，一般是16，17，18....等数字
       // End of slice; allocate a new one
       offset = bytePool.allocSlice(bytes, offset);
       bytes = bytePool.buffer;

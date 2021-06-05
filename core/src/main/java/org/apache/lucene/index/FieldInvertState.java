@@ -40,6 +40,7 @@ public final class FieldInvertState {
   int numOverlap;
   int offset;
   int maxTermFrequency;
+  // field上不同的term个数
   int uniqueTermCount;
   // we must track these across field instances (multi-valued case)
   int lastStartOffset = 0;

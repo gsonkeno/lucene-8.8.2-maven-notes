@@ -32,7 +32,7 @@ class ParallelPostingsArray {
   final int size;
   // 每一个term在ByteBlockPool对象的buffers [ ] [ ]二维数组中的起始位置。
   final int[] textStarts; // maps term ID to the terms's text start in the bytesHash
-  // 数组元素为每一个term在IntBlockPool对象的buffers[ ] [ ] 二维数组中的位置。
+  // 数组元素为每一个term在IntBlockPool对象的buffers[ ] [ ] 二维数组中的位置，全局指针
   final int[] addressOffset; // maps term ID to current stream address
   final int[] byteStarts; // maps term ID to stream start offset in the byte pool
 
