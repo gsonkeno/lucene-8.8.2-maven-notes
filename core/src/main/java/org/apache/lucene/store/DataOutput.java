@@ -184,10 +184,16 @@ public abstract class DataOutput {
    * @see DataInput#readVInt()
    */
   public final void writeVInt(int i) throws IOException {
+    //0x7F  = 00000000_00000000_00000000_01111111
+    //~0x7F = 11111111_11111111_11111111_10000000
+    // （i & ~0x7F) !=0 表示 i>127
     while ((i & ~0x7F) != 0) {
+      //记录低7位，(第8位为1，表示i用一个字节表示不够表示)
       writeByte((byte)((i & 0x7F) | 0x80));
+      //i 无符号右移7位，因为低7位已经第当前字节存储了，另外的位用下一个字节存储
       i >>>= 7;
     }
+    //表示i<=127，一个字节记录即可，这个字节最高位肯定为0
     writeByte((byte)i);
   }
 

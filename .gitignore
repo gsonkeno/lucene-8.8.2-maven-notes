@@ -1,3 +1,5 @@
 # Project exclude paths
 /core/target/
 vcs.xml
+lucene-8.8.2-maven-notes.iml
+/.idea/

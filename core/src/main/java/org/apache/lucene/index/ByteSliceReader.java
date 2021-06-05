@@ -30,13 +30,15 @@ import org.apache.lucene.util.ByteBlockPool;
  * and then jump to it.*/
 final class ByteSliceReader extends DataInput {
   ByteBlockPool pool;
-  int bufferUpto;
-  byte[] buffer;
-  public int upto;
+  int bufferUpto;//指针，确定当前处在buffers（即byte[][])中的哪一个buffer,
+  byte[] buffer;//当前读取的buffer
+  public int upto;//指针，确定从当前读取的buffer的哪个位置开始读取
+  //指针，因为buffer是分块的，当前slice如果后续还有数字时，当前slice的最后4个字节记录的是
+  //后续数据的写入地址，limit指向当前块的倒数第4个字节
   int limit;
   int level;
-  public int bufferOffset;
-
+  public int bufferOffset;//指针，确定当前buffer的首位置偏移量，是BYTE_BLOCK_SIZE的整数倍
+  //结束位置指针
   public int endIndex;
 
   public void init(ByteBlockPool pool, int startIndex, int endIndex) {
@@ -52,7 +54,7 @@ final class ByteSliceReader extends DataInput {
     bufferUpto = startIndex / ByteBlockPool.BYTE_BLOCK_SIZE;
     bufferOffset = bufferUpto * ByteBlockPool.BYTE_BLOCK_SIZE;
     buffer = pool.buffers[bufferUpto];
-    upto = startIndex & ByteBlockPool.BYTE_BLOCK_MASK;
+    upto = startIndex & ByteBlockPool.BYTE_BLOCK_MASK;//通过&操作，定位到应该从当前buffer的哪个位置读取
 
     final int firstSize = ByteBlockPool.LEVEL_SIZE_ARRAY[0];
 

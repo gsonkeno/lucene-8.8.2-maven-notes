@@ -45,6 +45,8 @@ public final class ByteBlockPool implements Accountable {
   private static final long BASE_RAM_BYTES = RamUsageEstimator.shallowSizeOfInstance(ByteBlockPool.class);
 
   public final static int BYTE_BLOCK_SHIFT = 15;
+  //一个buffer(byte[])的元素个数最大为0x0001 0000
+  //其对应的掩码为0x0000 FFFF
   public final static int BYTE_BLOCK_SIZE = 1 << BYTE_BLOCK_SHIFT;
   public final static int BYTE_BLOCK_MASK = BYTE_BLOCK_SIZE - 1;
 
@@ -123,11 +125,17 @@ public final class ByteBlockPool implements Accountable {
   /** index into the buffers array pointing to the current buffer used as the head */
   private int bufferUpto = -1;                        // Which buffer we are upto
   /** Where we are in head buffer */
+  //初始值为 0x0001 0000,使得第一次使用pool时，就要分配第一层级的块
+  //newSlice方法执行后，值为5；把它当作指针来看的话，其总是指向块的第一个元素
   public int byteUpto = BYTE_BLOCK_SIZE;
 
   /** Current head buffer */
+  //当前buffer，当前类buffers二维数组中的一个buffer
   public byte[] buffer;
   /** Current head offset */
+  //当前使用中的buffer的首地址,每次调用nextBuffer()生成一个新buffer时
+  //偏移地址就增加BYTE_BLOCK_SIZE, 因为一个buffer的大小就是BYTE_BLOCK_SIZE
+  //byteOffSet是BYTE_BLOCK_SIZE的整数倍
   public int byteOffset = -BYTE_BLOCK_SIZE;
 
   private final Allocator allocator;
@@ -202,9 +210,11 @@ public final class ByteBlockPool implements Accountable {
       System.arraycopy(buffers, 0, newBuffers, 0, buffers.length);
       buffers = newBuffers;
     }
+    //初始化一个buffer(即byte[])
     buffer = buffers[1+bufferUpto] = allocator.getByteBlock();
+    //更新buffer指针，指向上面生成的buffer
     bufferUpto++;
-
+    //更新byte指针，表示现在buffer的首位置等待数据写入
     byteUpto = 0;
     byteOffset += BYTE_BLOCK_SIZE;
   }
@@ -212,12 +222,15 @@ public final class ByteBlockPool implements Accountable {
   /**
    * Allocates a new slice with the given size. 
    * @see ByteBlockPool#FIRST_LEVEL_SIZE
+   * lucene内部调用时，size 为第一层级块的大小 5，
    */
   public int newSlice(final int size) {
     if (byteUpto > BYTE_BLOCK_SIZE-size)
       nextBuffer();
     final int upto = byteUpto;
+    //第一次，byteUpto为5
     byteUpto += size;
+    //第一次，buffer[4]=16
     buffer[byteUpto-1] = 16;
     return upto;
   }
@@ -248,35 +261,55 @@ public final class ByteBlockPool implements Accountable {
   /**
    * Creates a new byte slice with the given starting size and 
    * returns the slices offset in the pool.
+   * 仅当upto已经是当前块的末尾时，此方法才被调用，分配一个新块
+   * slice是一个buffer，往往容量很大，upto指向当前块的末尾
+   * (upto是一个指针，从0开始计数)
+   *
+   * 返回值为新的块待写入新数据的指针位置(大概率还是这个buffer,除非到达边界，执行了nextBuffer方法)
    */
   public int allocSlice(final byte[] slice, final int upto) {
-
+    //根据块的结束符slice[upto],可以推断出当前所在块的层级
+    //第一层级块的结束符为16，则level=0
+    //第二层级块的结束符为17，则level=1
+    //......
     final int level = slice[upto] & 15;
+    //得到下一层级 以及 下一层级块的大小
     final int newLevel = NEXT_LEVEL_ARRAY[level];
     final int newSize = LEVEL_SIZE_ARRAY[newLevel];
 
     // Maybe allocate another block
+    //如果当前buffer(即byte[])已不足以分配下一层级的块，则生成下一个buffer(即byte[])
     if (byteUpto > BYTE_BLOCK_SIZE-newSize) {
       nextBuffer();
     }
 
     final int newUpto = byteUpto;
     final int offset = newUpto + byteOffset;
+    //byteUpto指针更新，后移newSize次
     byteUpto += newSize;
 
     // Copy forward the past 3 bytes (which we are about
     // to overwrite with the forwarding address):
+    // 当分配了新的块的时候，需要有一个指针从本块指向下一个块，使得读取此信息的时候，
+    // 能够在此块读取结束后，到下一个块继续读取。
+
+    // 这个指针需要4个byte，在本块中，除了结束符所占用的一个byte之外，
+    // 之前的三个byte的数据都应该移到新的块中，从而四个byte连起来形成一个指针。
     buffer[newUpto] = slice[upto-3];
     buffer[newUpto+1] = slice[upto-2];
     buffer[newUpto+2] = slice[upto-1];
 
     // Write forwarding address at end of last slice:
+    // 将新块地址(也即指针)写入到连同结束符在内的四个byte
+    // 因为地址是int类型，需要4个字节
     slice[upto-3] = (byte) (offset >>> 24);
     slice[upto-2] = (byte) (offset >>> 16);
     slice[upto-1] = (byte) (offset >>> 8);
     slice[upto] = (byte) offset;
         
     // Write new level:
+    // 在新的块的结尾写入新的结束符，结束符和层次的关系就是(endbyte = 16 | level)
+    // 可能是 16|1=17; 16|2=18;....
     buffer[byteUpto-1] = (byte) (16|newLevel);
 
     return newUpto+3;

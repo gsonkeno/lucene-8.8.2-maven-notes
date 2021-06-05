@@ -32,7 +32,7 @@ final class ByteSliceWriter extends DataOutput {
   /* Initial chunks size of the shared byte[] blocks used to
      store postings data */
   private final static int BYTE_BLOCK_NOT_MASK = ~BYTE_BLOCK_MASK;
-
+  //与ByteBlockPool的当前buffer映射
   private byte[] slice;
   private int upto;
   private final ByteBlockPool pool;
@@ -64,6 +64,7 @@ final class ByteSliceWriter extends DataOutput {
       offset0 = pool.byteOffset;
       assert slice != null;
     }
+    //upto指向待写入数据的指针位置
     slice[upto++] = b;
     assert upto != slice.length;
   }

@@ -124,19 +124,26 @@ public abstract class DataInput implements Cloneable {
     return i;
     */
     byte b = readByte();
+    //表示最高位为0，vInt就1个字节，直接返回
     if (b >= 0) return b;
+    //还有其他字节，则最高位置0，只取低7位
     int i = b & 0x7F;
     b = readByte();
+    //i表示两个字节联系起来后表示的真实数字
     i |= (b & 0x7F) << 7;
+    //第二个字节最高位为0，vInt就2个字节，直接返回
     if (b >= 0) return i;
     b = readByte();
     i |= (b & 0x7F) << 14;
+    //第三个字节最高位为0，vInt就3个字节，直接返回
     if (b >= 0) return i;
     b = readByte();
     i |= (b & 0x7F) << 21;
+    //第四个字节最高位为0，vInt就3个字节，直接返回
     if (b >= 0) return i;
     b = readByte();
     // Warning: the next ands use 0x0F / 0xF0 - beware copy/paste errors:
+    //第五个字节最多就是低4位全是1，表示这个数字很大，用Int也需要4个字节才能真正填充
     i |= (b & 0x0F) << 28;
     if ((b & 0xF0) == 0) return i;
     throw new IOException("Invalid vInt detected (too many bits)");
