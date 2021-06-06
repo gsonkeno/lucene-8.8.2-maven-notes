@@ -39,7 +39,9 @@ import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SIZE;
  * {@link #add(BytesRef)} must not be longer than {@link ByteBlockPool#BYTE_BLOCK_SIZE}-2. 
  * The internal storage is limited to 2GB total byte storage.
  * </p>
- * 
+ *
+ * 单个byteRef被添加进来时，长度不能超过1<<15 - 2
+ * 内部总存储容量最大2GB，即2^31
  * @lucene.internal
  */
 public final class BytesRefHash implements Accountable {

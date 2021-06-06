@@ -130,12 +130,12 @@ public final class ByteBlockPool implements Accountable {
   public int byteUpto = BYTE_BLOCK_SIZE;
 
   /** Current head buffer */
-  //当前buffer，当前类buffers二维数组中的一个buffer
+  // 当前buffer，当前类buffers二维数组中的一个buffer
   public byte[] buffer;
   /** Current head offset */
-  //当前使用中的buffer的首地址,每次调用nextBuffer()生成一个新buffer时
-  //偏移地址就增加BYTE_BLOCK_SIZE, 因为一个buffer的大小就是BYTE_BLOCK_SIZE
-  //byteOffSet是BYTE_BLOCK_SIZE的整数倍
+  // 当前使用中的buffer的首地址,每次调用nextBuffer()生成一个新buffer时
+  // 偏移地址就增加BYTE_BLOCK_SIZE, 因为一个buffer的大小就是BYTE_BLOCK_SIZE
+  // byteOffSet是BYTE_BLOCK_SIZE的整数倍
   public int byteOffset = -BYTE_BLOCK_SIZE;
 
   private final Allocator allocator;

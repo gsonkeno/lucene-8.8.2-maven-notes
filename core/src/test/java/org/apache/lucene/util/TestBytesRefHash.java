@@ -223,7 +223,7 @@ public class TestBytesRefHash extends LuceneTestCase {
         ref.copyChars(str);
         int count = hash.size();
         int key = hash.add(ref.get());
-
+        // >=0表示第一次添加；每个新元素添加后，理论上key是递增的
         if (key >=0) {
           assertTrue(strings.add(str));
           assertEquals(uniqueCount, key);
