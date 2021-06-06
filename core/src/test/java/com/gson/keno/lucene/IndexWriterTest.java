@@ -93,6 +93,4 @@ public class IndexWriterTest {
         writer.commit();
         writer.close();
     }
-
-
 }
