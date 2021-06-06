@@ -892,6 +892,7 @@ final class DefaultIndexingChain extends DocConsumer {
       if (first) {
         // First time we're seeing this field (indexed) in
         // this document:
+        // 一个doc中，多个同名field时，只会第一次遇到该field，会走到这里
         invertState.reset();
       }
 

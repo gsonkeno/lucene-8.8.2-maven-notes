@@ -4,7 +4,9 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
@@ -38,17 +40,18 @@ public class IndexWriterTest {
     }
 
     /**
-     * 测试只增加倒排索引
+     * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS}
+     * 不包含偏移量
      */
     @Test
     public void testCreateInvertFieldDocIndex() throws IOException, URISyntaxException {
         IndexWriter writer = getIndexWriter();
         Document doc = new Document();
-        doc.add(new TextField("info", "study play football ! hi study boys", Field.Store.YES));
+        doc.add(new TextField("info", "study play football ! study", Field.Store.YES));
         writer.addDocument(doc);
 
         doc = new Document();
-        doc.add(new TextField("info", "hi, every one, good play", Field.Store.YES));
+        doc.add(new TextField("info", "hi, every one, good play study", Field.Store.YES));
         writer.addDocument(doc);
 
         doc = new Document();
@@ -58,5 +61,38 @@ public class IndexWriterTest {
         writer.commit();
         writer.close();
     }
+
+    /**
+     * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}
+     * 包含偏移量
+     */
+    @Test
+    public void testCreateInvertFieldDocIndexUseDOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+
+        FieldType fieldType = new FieldType();
+        fieldType.setStored(true);
+        fieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+        fieldType.setTokenized(true);
+        fieldType.freeze();
+
+        doc.add(new Field("info", "play football", fieldType));
+        doc.add(new Field("info", "hello", fieldType));
+        doc.add(new Field("info", "happy", fieldType));
+        writer.addDocument(doc);
+
+        doc = new Document();
+        doc.add(new Field("info", "hi, every one, good play study", fieldType));
+        writer.addDocument(doc);
+
+        doc = new Document();
+        doc.add(new Field("info", "play basketball is one good interest", fieldType));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
 
 }

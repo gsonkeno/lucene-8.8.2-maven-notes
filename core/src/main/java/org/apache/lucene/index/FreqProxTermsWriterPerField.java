@@ -72,10 +72,13 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
 
   void writeProx(int termID, int proxCode) {
     if (payloadAttribute == null) {
+      // 如果没有payload，位置prox信息左移1位记录下来
       writeVInt(1, proxCode<<1);
     } else {
       BytesRef payload = payloadAttribute.getPayload();
       if (payload != null && payload.length > 0) {
+        // 如果有payload，位置信息左移1位，且最低位记1
+        // 再接着记录payload的长度，payload的信息
         writeVInt(1, (proxCode<<1)|1);
         writeVInt(1, payload.length);
         writeBytes(1, payload.bytes, payload.offset, payload.length);
@@ -114,6 +117,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
       postings.termFreqs[termID] = getTermFreq();
       if (hasProx) {
         writeProx(termID, fieldState.position);
+        //IndexOptions == DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS时，hasOffsets=true
         if (hasOffsets) {
           writeOffsets(termID, fieldState.offset);
         }
@@ -143,6 +147,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
         postings.lastDocIDs[termID] = docID;
         fieldState.uniqueTermCount++;
       }
+      // 表示是当前文档出现了上一篇文档内部出现的term
     } else if (docID != postings.lastDocIDs[termID]) {
       assert docID > postings.lastDocIDs[termID]:"id: "+docID + " postings ID: "+ postings.lastDocIDs[termID] + " termID: "+termID;
       // Term not yet seen in the current doc but previously
@@ -150,17 +155,21 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
 
       // Now that we know doc freq for previous doc,
       // write it & lastDocCode
+      // 由于term在上一个文档中的词频为1，故将term在上一个文档的文档号和词频组合起来存储
       if (1 == postings.termFreqs[termID]) {
         writeVInt(0, postings.lastDocCodes[termID]|1);
       } else {
+        // 由于term在上一个文档中的词频>1，故将term在上一个文档的文档号和词频分开存储
         writeVInt(0, postings.lastDocCodes[termID]);
         writeVInt(0, postings.termFreqs[termID]);
-      }
+      }//至此得出，对于一个doc中term而言，它归属的文档号和词频总是在处理下一个doc时，才写入到bytePool中
 
       // Init freq for the current document
       postings.termFreqs[termID] = getTermFreq();
       fieldState.maxTermFrequency = Math.max(postings.termFreqs[termID], fieldState.maxTermFrequency);
+      //当前文档首次出现上一文档中的某一term时，使用差值更新docCodes,且左移1位
       postings.lastDocCodes[termID] = (docID - postings.lastDocIDs[termID]) << 1;
+      // term出现的最后一个文档为当前文档
       postings.lastDocIDs[termID] = docID;
       if (hasProx) {
         writeProx(termID, fieldState.position);
@@ -172,7 +181,7 @@ final class FreqProxTermsWriterPerField extends TermsHashPerField {
         assert !hasOffsets;
       }
       fieldState.uniqueTermCount++;
-    } else {
+    } else {//表示当前doc当前filed 内部再次出现了已经出现过的term
       postings.termFreqs[termID] = Math.addExact(postings.termFreqs[termID], getTermFreq());
       fieldState.maxTermFrequency = Math.max(fieldState.maxTermFrequency, postings.termFreqs[termID]);
       if (hasProx) {

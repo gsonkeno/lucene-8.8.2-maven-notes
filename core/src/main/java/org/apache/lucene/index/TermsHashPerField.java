@@ -143,7 +143,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
       // can we fit at least one byte per stream in the current buffer, if not allocate a new one
       bytePool.nextBuffer();
     }
-
+    //由此可见，地址相同；streamCount=2,每次intUpto指针后移两位
     termStreamAddressBuffer = intPool.buffer;
     streamAddressOffset = intPool.intUpto;
     intPool.intUpto += streamCount; // advance the pool to reserve the N streams for this term
@@ -312,10 +312,14 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
     return true;
   }
 
-  /** Called when a term is seen for the first time. */
+  /** Called when a term is seen for the first time. *
+   *  当term在field中第一次出现时被调用
+   */
   abstract void newTerm(int termID, final int docID) throws IOException;
 
-  /** Called when a previously seen term is seen again. */
+  /** Called when a previously seen term is seen again.
+   * 当term在field中再次出现时被调用
+   */
   abstract void addTerm(int termID, final int docID) throws IOException;
 
   /** Called when the postings array is initialized or
