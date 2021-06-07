@@ -339,15 +339,20 @@ public final class ByteBlockPool implements Accountable {
 
   // Fill in a BytesRef from term's length & bytes encoded in
   // byte block
+  // 从buffers的textStart位置起，将term的长度与内容字节全部填充到入参term中去
   public void setBytesRef(BytesRef term, int textStart) {
     final byte[] bytes = term.bytes = buffers[textStart >> BYTE_BLOCK_SHIFT];
     int pos = textStart & BYTE_BLOCK_MASK;
     if ((bytes[pos] & 0x80) == 0) {
       // length is 1 byte
+      // 长度占1个字节
+      // 设置term的长度以及term文本在ByteRef中的起始位置
       term.length = bytes[pos];
       term.offset = pos+1;
     } else {
       // length is 2 bytes
+      // 长度占2个字节
+      // 设置term的长度以及term文本在ByteRef中的起始位置
       term.length = (bytes[pos]&0x7f) + ((bytes[pos+1]&0xff)<<7);
       term.offset = pos+2;
     }

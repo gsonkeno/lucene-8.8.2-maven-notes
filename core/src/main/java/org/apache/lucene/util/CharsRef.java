@@ -20,6 +20,9 @@ package org.apache.lucene.util;
 import java.util.Comparator;
 
 /**
+ * 对于一个已经存在的char[]数组，我们多使用两个属性offset和length，就可以得到我们想要的
+ * char[]，相当于从原char[]中截取了一个小块(block)
+ *
  * Represents char[], as a slice (offset + length) into an existing char[].
  * The {@link #chars} member should never be null; use
  * {@link #EMPTY_CHARS} if necessary.

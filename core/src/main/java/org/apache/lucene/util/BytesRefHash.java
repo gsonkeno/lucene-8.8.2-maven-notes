@@ -27,6 +27,19 @@ import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SHIFT;
 import static org.apache.lucene.util.ByteBlockPool.BYTE_BLOCK_SIZE;
 
 /**
+ *
+ * https://www.amazingkoala.com.cn/Lucene/gongjulei/2019/0218/32.html
+ *
+ * 提供了类似HashMap的ByteRef--->TermID的映射；对于新的term，每次调用{@link #add(BytesRef)}
+ * 方法时，返回的termID都是从0递增的。
+ *
+ * add的ByteRef存储在{@link ByteBlockPool#buffers}中，并且是连续的；
+ *
+ * {@link #bytesStart} 下标是termId， 值为term在ByteBlockPool.buffers中的起始位置
+ *
+ * {@link #ids} 下标为add方法调用时入参ByteRef的hash值与mask进行位与计算得来的，元素值为termId。
+ * 下次同样的ByteRef再次传入时，可以直接得到termId。 有点像HashMap
+ *
  * {@link BytesRefHash} is a special purpose hash-map like data-structure
  * optimized for {@link BytesRef} instances. BytesRefHash maintains mappings of
  * byte arrays to ids (Map&lt;BytesRef,int&gt;) storing the hashed bytes
@@ -56,11 +69,13 @@ public final class BytesRefHash implements Accountable {
   // the following fields are needed by comparator,
   // so package private to prevent access$-methods:
   final ByteBlockPool pool;
+  // 下标是termId， 值为term在ByteBlockPool.buffers中的起始位置，buffers二维数组的全局指针
   int[] bytesStart;
-
+  //擦除数据
   private final BytesRef scratch1 = new BytesRef();
   private int hashSize;
   private int hashHalfSize;
+  //hasSize的掩码，用来与操作
   private int hashMask;
   private int count;
   private int lastCount = -1;

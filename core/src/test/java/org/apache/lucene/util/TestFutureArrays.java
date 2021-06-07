@@ -181,22 +181,28 @@ public class TestFutureArrays extends LuceneTestCase {
     assertTrue(FutureArrays.equals(bytes("ab"), 0, 2, bytes("ab"), 0, 2));
     assertFalse(FutureArrays.equals(bytes("a"), 0, 1, bytes("ab"), 0, 2));
 
+    // 期望runnable抛出IllegalArgumentException
     expectThrows(IllegalArgumentException.class, () -> {
+      // fromIndex应小于 toIndex, 否则抛出参数异常
       FutureArrays.equals(bytes("ab"), 2, 1, bytes("a"), 0, 1);
     });
     expectThrows(IllegalArgumentException.class, () -> {
       FutureArrays.equals(bytes("ab"), 2, 1, bytes("a"), 1, 0);
     });
     expectThrows(NullPointerException.class, () -> {
+      // 空指针
       FutureArrays.equals(null, 0, 2, bytes("a"), 0, 1);
     });
     expectThrows(NullPointerException.class, () -> {
+      // 空指针
       FutureArrays.equals(bytes("ab"), 0, 2, null, 0, 1);
     });
     expectThrows(IndexOutOfBoundsException.class, () -> {
+      // 超出边界
       FutureArrays.equals(bytes("ab"), 0, 3, bytes("a"), 0, 1);
     });
     expectThrows(IndexOutOfBoundsException.class, () -> {
+      // 超出边界
       FutureArrays.equals(bytes("ab"), 0, 2, bytes("a"), 0, 2);
     });
   }

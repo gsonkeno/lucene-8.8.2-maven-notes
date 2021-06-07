@@ -37,6 +37,7 @@ public final class FutureArrays {
   // methods in Arrays are defined stupid: they cannot use Objects.checkFromToIndex
   // they throw IAE (vs IOOBE) in the case of fromIndex > toIndex.
   // so this method works just like checkFromToIndex, but with that stupidity added.
+  // 抛出参数异常
   private static void checkFromToIndex(int fromIndex, int toIndex, int length) {
     if (fromIndex > toIndex) {
       throw new IllegalArgumentException("fromIndex " + fromIndex + " > toIndex " + toIndex);
