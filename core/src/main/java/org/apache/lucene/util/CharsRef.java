@@ -88,6 +88,7 @@ public final class CharsRef implements Comparable<CharsRef>, CharSequence, Clone
 
   @Override
   public int hashCode() {
+    //素数，又称质数
     final int prime = 31;
     int result = 0;
     final int end = offset + length;
@@ -154,7 +155,7 @@ public final class CharsRef implements Comparable<CharsRef>, CharSequence, Clone
     return utf16SortedAsUTF8SortOrder;
   }
   
-  /** @deprecated This comparator is only a transition mechanism */
+  /** @deprecated This comparator is only a transition mechanism 转变机制；过度机制 */
   @Deprecated
   private static class UTF16SortedAsUTF8Comparator implements Comparator<CharsRef> {
     // Only singleton
@@ -175,8 +176,12 @@ public final class CharsRef implements Comparable<CharsRef>, CharSequence, Clone
         /* aChar != bChar, fix up each one if they're both in or above the surrogate range, then compare them */
         if (aChar >= 0xd800 && bChar >= 0xd800) {
           if (aChar >= 0xe000) {
+            // 0x800 = 2* 2^10 = 2k=2048,
+            //（“代理区(Surrogate Zone)”，范围为0xD800~0xDFFF(十进制55296~57343)，
+            // 共2048个码点未定义。UTF8和UTF32没有这个问题）
             aChar -= 0x800;
           } else {
+            // 0x2000 = 2^13 = 8k
             aChar += 0x2000;
           }
           
@@ -187,7 +192,9 @@ public final class CharsRef implements Comparable<CharsRef>, CharSequence, Clone
           }
         }
 
-        /* now aChar and bChar are in code point order */
+        /* now aChar and bChar are in code point order
+        * 强转为int,一定为正数，因为2个字节转4个字节，前面都是补0
+        */
         return (int)aChar - (int)bChar; /* int must be 32 bits wide */
       }
 
@@ -207,7 +214,8 @@ public final class CharsRef implements Comparable<CharsRef>, CharSequence, Clone
     return new CharsRef(ArrayUtil.copyOfSubArray(other.chars, other.offset, other.offset + other.length), 0, other.length);
   }
   
-  /** 
+  /**
+   * 检查内部属性一致性
    * Performs internal consistency checks.
    * Always returns true (or throws IllegalStateException) 
    */

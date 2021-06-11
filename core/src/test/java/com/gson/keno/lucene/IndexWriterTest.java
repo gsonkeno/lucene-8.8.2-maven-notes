@@ -48,10 +48,11 @@ public class IndexWriterTest {
         IndexWriter writer = getIndexWriter();
         Document doc = new Document();
         doc.add(new TextField("info", "study play football ! study", Field.Store.YES));
+        doc.add(new TextField("school", "JiNan university", Field.Store.YES));
         writer.addDocument(doc);
 
         doc = new Document();
-        doc.add(new TextField("info", "hi, every one, good play study", Field.Store.YES));
+        doc.add(new TextField("info", "play hi, every one, good play study", Field.Store.YES));
         writer.addDocument(doc);
 
         doc = new Document();
