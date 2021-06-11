@@ -179,7 +179,7 @@ abstract class TermsHashPerField implements Comparable<TermsHashPerField> {
     int termID = bytesHash.add(termBytes);
     //System.out.println("add term=" + termBytesRef.utf8ToString() + " doc=" + docState.docID + " termID=" + termID);
     if (termID >= 0) { // New posting
-      // Init stream slices
+      // Init stream slices 新词出新块
       initStreamSlices(termID, docID);
     } else {
       termID = positionStreamSlice(termID, docID);
