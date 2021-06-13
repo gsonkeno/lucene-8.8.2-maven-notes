@@ -164,7 +164,7 @@ public abstract class PerFieldPostingsFormat extends PostingsFormat {
               return group.fields.iterator();
             }
           };
-
+          // format = Lucene84PostingFormat ; Consumer = BlockTreeTermsWriter
           FieldsConsumer consumer = format.fieldsConsumer(group.state);
           toClose.add(consumer);
           consumer.write(maskedFields, norms);

@@ -468,7 +468,7 @@ public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo
   boolean pendingCommit;
 
   private void write(Directory directory) throws IOException {
-
+   // segmentFileName = "pending_segments_[N]"
     long nextGeneration = getNextPendingGeneration();
     String segmentFileName = IndexFileNames.fileNameFromGeneration(IndexFileNames.PENDING_SEGMENTS,
                                                                    "",
@@ -484,7 +484,7 @@ public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo
       segnOutput = directory.createOutput(segmentFileName, IOContext.DEFAULT);
       write(segnOutput);
       segnOutput.close();
-      directory.sync(Collections.singleton(segmentFileName));
+      directory.sync(Collections.singleton(segmentFileName));//强制pending_segments_[N]文件持久化
       success = true;
     } finally {
       if (success) {
@@ -518,7 +518,7 @@ public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo
     if (size() > 0) {
 
       Version minSegmentVersion = null;
-
+      // 遍历SegmentCommitInfo，记录最小的版本号，读取的时候更容易判断是否抛出版本太老异常
       // We do a separate loop up front so we can write the minSegmentVersion before
       // any SegmentInfo; this makes it cleaner to throw IndexFormatTooOldExc at read time:
       for (SegmentCommitInfo siPerCommit : this) {
@@ -538,14 +538,14 @@ public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo
       SegmentInfo si = siPerCommit.info;
       if (indexCreatedVersionMajor >= 7 && si.minVersion == null) {
         throw new IllegalStateException("Segments must record minVersion if they have been created on or after Lucene 7: " + si);
-      }
+      }//si.name = "_0", one case
       out.writeString(si.name);
       byte segmentID[] = si.getId();
       if (segmentID.length != StringHelper.ID_LENGTH) {
         throw new IllegalStateException("cannot write segment: invalid id segment=" + si.name + "id=" + StringHelper.idToString(segmentID));
       }
       out.writeBytes(segmentID, segmentID.length);
-      out.writeString(si.getCodec().getName());
+      out.writeString(si.getCodec().getName()); // Lucene87
       out.writeLong(siPerCommit.getDelGen());
       int delCount = siPerCommit.getDelCount();
       if (delCount < 0 || delCount > si.maxDoc()) {

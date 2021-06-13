@@ -92,7 +92,7 @@ final class FreqProxTermsWriter extends TermsHash {
       }
     }
 
-    // Sort by field name
+    // Sort by field name 按字段的名字自然排序
     CollectionUtil.introSort(allFields);
 
     Fields fields = new FreqProxFields(allFields);
@@ -113,7 +113,7 @@ final class FreqProxTermsWriter extends TermsHash {
         }
       };
     }
-
+    // PerFieldPostingsFormat.FieldsWriter
     FieldsConsumer consumer = state.segmentInfo.getCodec().postingsFormat().fieldsConsumer(state);
     boolean success = false;
     try {

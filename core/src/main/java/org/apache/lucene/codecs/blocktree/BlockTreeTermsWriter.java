@@ -216,11 +216,14 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
   private final IndexOutput termsOut;
   private final IndexOutput indexOut;
   final int maxDoc;
+  // 块内的最少元素个数
   final int minItemsInBlock;
+  // 块内的最多元素个数
   final int maxItemsInBlock;
 
   final PostingsWriterBase postingsWriter;
   final FieldInfos fieldInfos;
+  final String segment;
 
   private final List<ByteBuffersDataOutput> fields = new ArrayList<>();
 
@@ -243,9 +246,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     this.maxDoc = state.segmentInfo.maxDoc();
     this.fieldInfos = state.fieldInfos;
     this.postingsWriter = postingsWriter;
-
+    // <segmentInfoName>_<segmentSuffix>_.<extName> 如 _0_Lucene84_0.tim
     final String termsName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, BlockTreeTermsReader.TERMS_EXTENSION);
-    termsOut = state.directory.createOutput(termsName, state.context);
+    termsOut = state.directory.createOutput(termsName, state.context);// 生成xxxx.tim文件，但还未写数据
     boolean success = false;
     IndexOutput metaOut = null, indexOut = null;
     try {
@@ -256,7 +259,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       indexOut = state.directory.createOutput(indexName, state.context);
       CodecUtil.writeIndexHeader(indexOut, BlockTreeTermsReader.TERMS_INDEX_CODEC_NAME, BlockTreeTermsReader.VERSION_CURRENT,
                                  state.segmentInfo.getId(), state.segmentSuffix);
-      //segment = state.segmentInfo.name;
+      segment = state.segmentInfo.name;
 
       final String metaName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, BlockTreeTermsReader.TERMS_META_EXTENSION);
       metaOut = state.directory.createOutput(metaName, state.context);
@@ -291,14 +294,16 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
   @Override
   public void write(Fields fields, NormsProducer norms) throws IOException {
-    //if (DEBUG) System.out.println("\nBTTW.write seg=" + segment);
+    //if (DEBUG)
+    System.out.println("\nBTTW.write seg=" + segment);
 
     String lastField = null;
     for(String field : fields) {
       assert lastField == null || lastField.compareTo(field) < 0;
       lastField = field;
 
-      //if (DEBUG) System.out.println("\nBTTW.write seg=" + segment + " field=" + field);
+      //if (DEBUG)
+      System.out.println("\nBTTW.write seg=" + segment + " field=" + field);
       Terms terms = fields.terms(field);
       if (terms == null) {
         continue;
@@ -308,19 +313,22 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       TermsWriter termsWriter = new TermsWriter(fieldInfos.fieldInfo(field));
       while (true) {
         BytesRef term = termsEnum.next();
-        //if (DEBUG) System.out.println("BTTW: next term " + term);
+        //if (DEBUG)
+        System.out.println("BTTW: next term " + term);
 
         if (term == null) {
           break;
         }
 
-        //if (DEBUG) System.out.println("write field=" + fieldInfo.name + " term=" + brToString(term));
+        //if (DEBUG)
+        System.out.println("write field=" + field + " term=" + brToString(term));
         termsWriter.write(term, termsEnum, norms);
       }
 
       termsWriter.finish();
 
-      //if (DEBUG) System.out.println("\nBTTW.write done seg=" + segment + " field=" + field);
+      //if (DEBUG)
+      System.out.println("\nBTTW.write done seg=" + segment + " field=" + field);
     }
   }
   
@@ -673,7 +681,8 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       System.arraycopy(lastTerm.get().bytes, 0, prefix.bytes, 0, prefixLength);
       prefix.length = prefixLength;
 
-      //if (DEBUG2) System.out.println("    writeBlock field=" + fieldInfo.name + " prefix=" + brToString(prefix) + " fp=" + startFP + " isFloor=" + isFloor + " isLastInFloor=" + (end == pending.size()) + " floorLeadLabel=" + floorLeadLabel + " start=" + start + " end=" + end + " hasTerms=" + hasTerms + " hasSubBlocks=" + hasSubBlocks);
+      //if (DEBUG2)
+      System.out.println("    writeBlock field=" + fieldInfo.name + " prefix=" + brToString(prefix) + " fp=" + startFP + " isFloor=" + isFloor + " isLastInFloor=" + (end == pending.size()) + " floorLeadLabel=" + floorLeadLabel + " start=" + start + " end=" + end + " hasTerms=" + hasTerms + " hasSubBlocks=" + hasSubBlocks);
 
       // Write block header:
       int numEntries = end - start;

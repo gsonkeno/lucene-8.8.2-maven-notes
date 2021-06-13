@@ -28,7 +28,8 @@ import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.ReaderSlice;
 
-/** 
+/**
+ * 处理倒排索引
  * Abstract API that consumes terms, doc, freq, prox, offset and
  * payloads postings.  Concrete implementations of this
  * actually do "something" with the postings (write it into

@@ -3326,7 +3326,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
       maybeCloseOnTragicEvent();
     }
   }
-
+  // 写索引文件到存储介质中
   private long prepareCommitInternal() throws IOException {
     startCommitTime = System.nanoTime();
     synchronized(commitLock) {
@@ -5098,8 +5098,20 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         boolean success = false;
         final Collection<String> filesToSync;
         try {
+          // _0_Lucene84_0.pos;
+          // _0.si;
+          // _0.fdm;
+          // _0_Lucene84_0.doc;
+          // _0_Lucene84_0.tim;
+          // _0.nvd;
+          // _0_Lucene84_0.tip;
+          // _0_Lucene84_0.tmd;
+          // _0.fdx;
+          // _0.fdt;
+          // _0.nvm;
+          // _0.fnm
           filesToSync = toSync.files(false);
-          directory.sync(filesToSync);
+          directory.sync(filesToSync); //强制持久化
           success = true;
         } finally {
           if (!success) {

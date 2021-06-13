@@ -31,6 +31,7 @@ import org.apache.lucene.util.Accountable;
  * return the same singleton object from {@link
  * #getNoOutput}.</p>
  *
+ * 提供加，减，取共同前缀方法
  * @lucene.experimental
  */
 

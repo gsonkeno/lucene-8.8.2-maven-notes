@@ -388,6 +388,7 @@ public class Builder<T> {
    *  {@link ByteSequenceOutputs} or {@link
    *  IntSequenceOutputs}) then you cannot reuse across
    *  calls. */
+  // input必须是已经排过序的，
   public void add(IntsRef input, T output) throws IOException {
     /*
     if (DEBUG) {
@@ -438,6 +439,7 @@ public class Builder<T> {
       pos1++;
       pos2++;
     }
+    // prefixLenPlus1是计算出input和lastInput具有公共前缀的位置
     final int prefixLenPlus1 = pos1+1;
       
     if (frontier.length < input.length+1) {
@@ -450,9 +452,11 @@ public class Builder<T> {
 
     // minimize/compile states from previous input's
     // orphan'd suffix
+    // 2.从prefixLenPlus1, 进行freeze冰冻操作, 添加并构建最小FST
     freezeTail(prefixLenPlus1);
 
     // init tail states for current input
+    // 3.将当前input剩下的部分插入，构建arc转移（前缀是共用的，不用添加新的状态）。
     for(int idx=prefixLenPlus1;idx<=input.length;idx++) {
       frontier[idx-1].addArc(input.ints[input.offset + idx - 1],
                              frontier[idx]);
@@ -467,6 +471,7 @@ public class Builder<T> {
 
     // push conflicting outputs forward, only as far as
     // needed
+    // 4.如果有冲突的话，重新分配output值
     for(int idx=1;idx<prefixLenPlus1;idx++) {
       final UnCompiledNode<T> node = frontier[idx];
       final UnCompiledNode<T> parentNode = frontier[idx-1];
@@ -555,9 +560,12 @@ public class Builder<T> {
 
   /** Expert: holds a pending (seen but not yet serialized) arc. */
   public static class Arc<T> {
+    // 边，其实是个字母,无符号byte,如"m"，对应的ASCII值109
     public int label;                             // really an "unsigned" byte
+    // 边指向的Node
     public Node target;
     public boolean isFinal;
+    // 输入的附加值
     public T output;
     public T nextFinalOutput;
   }
