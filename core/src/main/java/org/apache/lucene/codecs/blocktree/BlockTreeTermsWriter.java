@@ -298,6 +298,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     System.out.println("\nBTTW.write seg=" + segment);
 
     String lastField = null;
+    // 每个field单独处理
     for(String field : fields) {
       assert lastField == null || lastField.compareTo(field) < 0;
       lastField = field;
@@ -314,7 +315,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       while (true) {
         BytesRef term = termsEnum.next();
         //if (DEBUG)
-        System.out.println("BTTW: next term " + term);
+        System.out.println("BTTW: next term " + term + ", utf8ToString =" + brToString(term));
 
         if (term == null) {
           break;
@@ -389,7 +390,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
   private static final class PendingBlock extends PendingEntry {
     public final BytesRef prefix;
     public final long fp;
+    // 描述的是一个PendingBlock自身的信息
     public FST<BytesRef> index;
+    // 描述的是该PendingBlock中嵌套的PendingBlock信息的集合（即每一个PendingBlock的index信息）
     public List<FST<BytesRef>> subIndices;
     public final boolean hasTerms;
     public final boolean isFloor;
@@ -420,6 +423,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       // TODO: try writing the leading vLong in MSB order
       // (opposite of what Lucene does today), for better
       // outputs sharing in the FST
+      // 将当前block的磁盘偏移量写入scratchBytes
       scratchBytes.writeVLong(encodeOutput(fp, hasTerms, isFloor));
       if (isFloor) {
         scratchBytes.writeVInt(blocks.size()-1);
@@ -450,6 +454,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       scratchBytes.reset();
 
       // Copy over index for all sub-blocks
+      // 将 sub-block 的所有 index 写入indexBuilder
       for(PendingBlock block : blocks) {
         if (block.subIndices != null) {
           for(FST<BytesRef> subIndex : block.subIndices) {
@@ -458,7 +463,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
           block.subIndices = null;
         }
       }
-
+      // 生成新的FST
       index = indexBuilder.finish();
 
       assert subIndices == null;
@@ -507,7 +512,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       if (df == 1 && (hasFreqs == false || ttf == 1)) {
         singletonCount++;
       } else {
-        finish();
+        finish(); // 看finish的注释，按照示例，这里会连续写 5, 2, 1
         out.writeVInt(df << 1);
         if (hasFreqs) {
           out.writeVLong(ttf - df);
@@ -517,6 +522,8 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
     void finish() throws IOException {
       if (singletonCount > 0) {
+        // eg: study play foot  study
+        // 当处理第二个study时, 非重term已经有singletonCount=3个
         out.writeVInt(((singletonCount - 1) << 1) | 1);
         singletonCount = 0;
       }
@@ -538,7 +545,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     // to write a new block:
     private final BytesRefBuilder lastTerm = new BytesRefBuilder();
     private int[] prefixStarts = new int[8];
-
+    // 类似栈，操作都在列表的尾部(栈顶),栈中的元素可以是term, 也可以是block
     // Pending stack of terms and blocks.  As terms arrive (in sorted order)
     // we append to this stack, and once the top of the stack has enough
     // terms starting with a common prefix, we write a new block with
@@ -550,7 +557,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
     private PendingTerm firstPendingTerm;
     private PendingTerm lastPendingTerm;
-
+    // 写入顶部的多个term到磁盘
     /** Writes the top count entries in pending, using prevTerm to compute the prefix. */
     void writeBlocks(int prefixLength, int count) throws IOException {
 
@@ -570,7 +577,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       // True if we saw at least one term in this block (we record if a block
       // only points to sub-blocks in the terms index so we can avoid seeking
       // to it when we are looking for a term):
+      // 如果这个值为true，那么这个block中至少有一个term
       boolean hasTerms = false;
+      // 如果这个值为true，那么这个block中至少有一个sub-block
       boolean hasSubBlocks = false;
 
       int start = pending.size()-count;
@@ -603,7 +612,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         // if (DEBUG) System.out.println("  i=" + i + " ent=" + ent + " suffixLeadLabel=" + suffixLeadLabel);
 
         if (suffixLeadLabel != lastSuffixLeadLabel) {
-          int itemsInBlock = i - nextBlockStart;
+          int itemsInBlock = i - nextBlockStart; // 计算当前位置 与 下一个block的起始位置的差值，这个值代表下一个block的Entry的个数
           if (itemsInBlock >= minItemsInBlock && end-nextBlockStart > maxItemsInBlock) {
             // The count is too large for one block, so we must break it into "floor" blocks, where we record
             // the leading label of the suffix of the first term in each floor block, so at search time we can
@@ -615,8 +624,8 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
             hasTerms = false;
             hasSubBlocks = false;
-            nextFloorLeadLabel = suffixLeadLabel;
-            nextBlockStart = i;
+            nextFloorLeadLabel = suffixLeadLabel; // 更新下一个block的 Lead label
+            nextBlockStart = i; // 记录下一个block的起始位置
           }
 
           lastSuffixLeadLabel = suffixLeadLabel;
@@ -628,8 +637,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
           hasSubBlocks = true;
         }
       }
-
+      // for循环结束
       // Write last block, if any:
+      // 将最后剩余的Entry写入同一个block，数量小于 maxItemsInBlock
       if (nextBlockStart < end) {
         int itemsInBlock = end - nextBlockStart;
         boolean isFloor = itemsInBlock < count;
@@ -637,17 +647,20 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       }
 
       assert newBlocks.isEmpty() == false;
-
+      // 记录写入磁盘中的所有block中的 root block
       PendingBlock firstBlock = newBlocks.get(0);
 
       assert firstBlock.isFloor || newBlocks.size() == 1;
-
+      // 对每个写入磁盘的block的前缀 prefix构建一个FST索引
+      // 所有block的FST索引联合成一个FST索引，并将联合的FST写入 root block
       firstBlock.compileIndex(newBlocks, scratchBytes, scratchIntsRef);
 
       // Remove slice from the top of the pending stack, that we just wrote:
+      // 移除pending栈顶的 count个 Entry
       pending.subList(pending.size()-count, pending.size()).clear();
 
       // Append new block
+      // 将 root block写回到 pending栈顶
       pending.add(firstBlock);
 
       newBlocks.clear();
@@ -672,7 +685,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
                                     boolean hasTerms, boolean hasSubBlocks) throws IOException {
 
       assert end > start;
-
+      // 记录词典文件.tim的偏移量, OutputStream缓冲区中已经有一部分数据了，这里取到下一个要写入的位置
       long startFP = termsOut.getFilePointer();
 
       boolean hasFloorLeadLabel = isFloor && floorLeadLabel != -1;
@@ -685,10 +698,13 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       System.out.println("    writeBlock field=" + fieldInfo.name + " prefix=" + brToString(prefix) + " fp=" + startFP + " isFloor=" + isFloor + " isLastInFloor=" + (end == pending.size()) + " floorLeadLabel=" + floorLeadLabel + " start=" + start + " end=" + end + " hasTerms=" + hasTerms + " hasSubBlocks=" + hasSubBlocks);
 
       // Write block header:
+      // 写 block header
+      // 计算block中term的数量
       int numEntries = end - start;
       int code = numEntries << 1;
       if (end == pending.size()) {
         // Last block:
+        // 这里代表公共前缀为prefix的block中，这个block是最后一个block
         code |= 1;
       }
       termsOut.writeVInt(code);
@@ -704,9 +720,10 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
       // We optimize the leaf block case (block has only terms), writing a more
       // compact format in this case:
+      // 这个block里面有没有sub-block
       boolean isLeafBlock = hasSubBlocks == false;
 
-      //System.out.println("  isLeaf=" + isLeafBlock);
+      System.out.println("  isLeaf=" + isLeafBlock);
 
       final List<FST<BytesRef>> subIndices;
 
@@ -714,6 +731,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
       if (isLeafBlock) {
         // Block contains only ordinary terms:
+        // block 里面没有sub-block，则用压缩的更少的空间来存所有内容
         subIndices = null;
         StatsWriter statsWriter = new StatsWriter(this.statsWriter, fieldInfo.getIndexOptions() != IndexOptions.DOCS);
         for (int i=start;i<end;i++) {
@@ -724,29 +742,33 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
           assert StringHelper.startsWith(term.termBytes, prefix): "term.term=" + term.termBytes + " prefix=" + prefix;
           BlockTermState state = term.state;
-          final int suffix = term.termBytes.length - prefixLength;
+          final int suffix = term.termBytes.length - prefixLength; // term长度 - 公共前缀长度 = 后缀长度
           //if (DEBUG2) {
           //  BytesRef suffixBytes = new BytesRef(suffix);
           //  System.arraycopy(term.termBytes, prefixLength, suffixBytes.bytes, 0, suffix);
           //  suffixBytes.length = suffix;
           //  System.out.println("    write term suffix=" + brToString(suffixBytes));
           //}
-
+          // suffixLengthsWriter 与 suffixWriter 两者配合，映射逻辑就出来了
           // For leaf block we write suffix straight
+          // suffixLengthsWriter不对应真正的物理磁盘文件，只在内存中有效
           suffixLengthsWriter.writeVInt(suffix);
+          // 追加[ termBytes[prefixLength], termBytes[prefixLength + suffix]), 包左不包右
           suffixWriter.append(term.termBytes, prefixLength, suffix);
           assert floorLeadLabel == -1 || (term.termBytes[prefixLength] & 0xff) >= floorLeadLabel;
 
-          // Write term stats, to separate byte[] blob:
+          // Write term stats, to separate byte[] blob: 内存中标记，无对应磁盘文件
           statsWriter.add(state.docFreq, state.totalTermFreq);
 
           // Write term meta data
+          // 对 term的倒排表在磁盘中的位置 写到metaWriter字节数组
           postingsWriter.encodeTerm(metaWriter, fieldInfo, state, absolute);
           absolute = false;
         }
         statsWriter.finish();
       } else {
         // Block has at least one prefix term or a sub block:
+        //  需要被写入的block 里面有sub-block
         subIndices = new ArrayList<>();
         StatsWriter statsWriter = new StatsWriter(this.statsWriter, fieldInfo.getIndexOptions() != IndexOptions.DOCS);
         for (int i=start;i<end;i++) {
@@ -768,10 +790,11 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // if entry is term or sub-block, and 1 bit to record if
             // it's a prefix term.  Terms cannot be larger than ~32 KB
             // so we won't run out of bits:
-
+            // 如果当前term不是block，后缀长度存 (suffix * 2)
             suffixLengthsWriter.writeVInt(suffix << 1);
+            // 将 term的后缀写入suffixWriter字节数组
             suffixWriter.append(term.termBytes, prefixLength, suffix);
-
+            // 将 term的 tf，df写到statsWriter字节数组
             // Write term stats, to separate byte[] blob:
             statsWriter.add(state.docFreq, state.totalTermFreq);
 
@@ -784,6 +807,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // separate anymore:
 
             // Write term meta data
+            // 对 term的倒排表在磁盘中的位置写到metaWriter字节数组
             postingsWriter.encodeTerm(metaWriter, fieldInfo, state, absolute);
             absolute = false;
           } else {
@@ -796,7 +820,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
             // For non-leaf block we borrow 1 bit to record
             // if entry is term or sub-block:f
+            // 如果当前term不是block，后缀长度存 (suffix * 2 + 1)
             suffixLengthsWriter.writeVInt((suffix<<1)|1);
+            // 将 term的后缀写入suffixWriter字节数组
             suffixWriter.append(block.prefix.bytes, prefixLength, suffix);
 
             //if (DEBUG2) {
@@ -808,8 +834,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
             assert floorLeadLabel == -1 || (block.prefix.bytes[prefixLength] & 0xff) >= floorLeadLabel: "floorLeadLabel=" + floorLeadLabel + " suffixLead=" + (block.prefix.bytes[prefixLength] & 0xff);
             assert block.fp < startFP;
-
+            // 将sub-block在词典文件中的偏移量写到metaWriter字节数组
             suffixLengthsWriter.writeVLong(startFP - block.fp);
+            // 将sub-block的term 索引加入subIndices
             subIndices.add(block.index);
           }
         }
@@ -817,7 +844,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
         assert subIndices.size() != 0;
       }
-
+      // 选择压缩算法
       // Write suffixes byte[] blob to terms dict output, either uncompressed, compressed with LZ4 or with LowercaseAsciiCompression.
       CompressionAlgorithm compressionAlg = CompressionAlgorithm.NO_COMPRESSION;
       // If there are 2 suffix bytes or less per term, then we don't bother compressing as suffix are unlikely what
@@ -850,16 +877,16 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         token |= 0x04;
       }
       token |= compressionAlg.code;
-      termsOut.writeVLong(token);
+      termsOut.writeVLong(token); // tim文件写入压缩算法code
       if (compressionAlg == CompressionAlgorithm.NO_COMPRESSION) {
-        termsOut.writeBytes(suffixWriter.bytes(), suffixWriter.length());
+        termsOut.writeBytes(suffixWriter.bytes(), suffixWriter.length()); // tim文件写入term后缀
       } else {
         spareWriter.writeTo(termsOut);
       }
       suffixWriter.setLength(0);
       spareWriter.reset();
 
-      // Write suffix lengths
+      // Write suffix lengths 多个已经排序的term， 取后缀长度写到备用 spareBytes
       final int numSuffixBytes = Math.toIntExact(suffixLengthsWriter.getFilePointer());
       spareBytes = ArrayUtil.grow(spareBytes, numSuffixBytes);
       suffixLengthsWriter.writeTo(new ByteArrayDataOutput(spareBytes));
@@ -912,7 +939,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         System.out.println("BTTW: write term=" + brToString(text) + " prefixStarts=" + Arrays.toString(tmp) + " pending.size()=" + pending.size());
       }
       */
-
+      // 将term的倒排表写入磁盘，返回磁盘偏移量
       BlockTermState state = postingsWriter.writeTerm(text, termsEnum, docsSeen, norms);
       if (state != null) {
 
@@ -933,10 +960,10 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         lastPendingTerm = term;
       }
     }
-
+    // 将term放到栈的顶部
     /** Pushes the new term to the top of the stack, and writes new blocks. */
     private void pushTerm(BytesRef text) throws IOException {
-      // Find common prefix between last term and current term:
+      // Find common prefix between last term and current term: 找到当前term与上一个term的公共前缀长度
       int prefixLength = FutureArrays.mismatch(lastTerm.bytes(), 0, lastTerm.length(), text.bytes, text.offset, text.offset + text.length);
       if (prefixLength == -1) { // Only happens for the first term, if it is empty
         assert lastTerm.length() == 0;
@@ -957,12 +984,12 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
           prefixStarts[i] -= prefixTopSize-1;
         }
       }
-
+      // prefixStartss数组容量扩大到text.length
       if (prefixStarts.length < text.length) {
         prefixStarts = ArrayUtil.grow(prefixStarts, text.length);
       }
 
-      // Init new tail:
+      // Init new tail: 当前term与lastTerm的公共前缀长度i下标及其之后,prefixStarts元素赋值
       for(int i=prefixLength;i<text.length;i++) {
         prefixStarts[i] = pending.size();
       }
@@ -1033,7 +1060,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     private final RAMOutputStream statsWriter = new RAMOutputStream();
     private final RAMOutputStream metaWriter = new RAMOutputStream();
     private final RAMOutputStream spareWriter = new RAMOutputStream();
-    private byte[] spareBytes = BytesRef.EMPTY_BYTES;
+    private byte[] spareBytes = BytesRef.EMPTY_BYTES; // 备用
     private final LZ4.HighCompressionHashTable compressionHashTable = new LZ4.HighCompressionHashTable();
   }
 

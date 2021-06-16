@@ -4,3 +4,4 @@ vcs.xml
 lucene-8.8.2-maven-notes.iml
 /.idea/encodings.xml
 /.idea/uiDesigner.xml
+/.idea/compiler.xml
