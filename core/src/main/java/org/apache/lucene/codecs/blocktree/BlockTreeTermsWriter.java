@@ -19,6 +19,7 @@ package org.apache.lucene.codecs.blocktree;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.codecs.BlockTermState;
@@ -224,6 +225,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
   final PostingsWriterBase postingsWriter;
   final FieldInfos fieldInfos;
   final String segment;
+  private static final boolean DEBUG = true;
 
   private final List<ByteBuffersDataOutput> fields = new ArrayList<>();
 
@@ -312,17 +314,22 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
 
       TermsEnum termsEnum = terms.iterator();
       TermsWriter termsWriter = new TermsWriter(fieldInfos.fieldInfo(field));
+      // 当前域是否还有未处理的term
       while (true) {
         BytesRef term = termsEnum.next();
-        //if (DEBUG)
-        System.out.println("BTTW: next term " + term + ", utf8ToString =" + brToString(term));
+        if (DEBUG){
+          System.out.println("BTTW: next term " + term + ", utf8ToString =" + brToString(term));
+        }
 
         if (term == null) {
           break;
         }
 
-        //if (DEBUG)
-        System.out.println("write field=" + field + " term=" + brToString(term));
+        if (DEBUG){
+          System.out.println("--------\n" +
+                  "BTTW: begin termsWriter.write field=" +
+                  field + " term=" + brToString(term) );
+        }
         termsWriter.write(term, termsEnum, norms);
       }
 
@@ -626,7 +633,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // 这种划分方式通常会使得最后一个block中包含的信息数量较少。
             boolean isFloor = itemsInBlock < count;
             newBlocks.add(writeBlock(prefixLength, isFloor, nextFloorLeadLabel, nextBlockStart, i, hasTerms, hasSubBlocks));
-
+            System.out.println("1newBlocksSize " + newBlocks.size());
             hasTerms = false;
             hasSubBlocks = false;
             nextFloorLeadLabel = suffixLeadLabel; // 更新下一个block的 Lead label
@@ -650,6 +657,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         boolean isFloor = itemsInBlock < count;
         newBlocks.add(writeBlock(prefixLength, isFloor, nextFloorLeadLabel, nextBlockStart, end, hasTerms, hasSubBlocks));
       }
+      System.out.println("0newBlocksSize=" + newBlocks.size());
 
       assert newBlocks.isEmpty() == false;
       // 记录写入磁盘中的所有block中的 root block
@@ -934,16 +942,22 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       docsSeen = new FixedBitSet(maxDoc);
       postingsWriter.setField(fieldInfo);
     }
+
+    private int[] getRealPrefixStarts(){
+      int[] tmp = new int[lastTerm.length()];
+      System.arraycopy(prefixStarts, 0, tmp, 0, tmp.length);
+      return tmp;
+    }
     
     /** Writes one term's worth of postings. */
     public void write(BytesRef text, TermsEnum termsEnum, NormsProducer norms) throws IOException {
-      /*
+
       if (DEBUG) {
-        int[] tmp = new int[lastTerm.length];
-        System.arraycopy(prefixStarts, 0, tmp, 0, tmp.length);
-        System.out.println("BTTW: write term=" + brToString(text) + " prefixStarts=" + Arrays.toString(tmp) + " pending.size()=" + pending.size());
+        System.out.println("BTTW: write term=" + brToString(text) +
+                " prefixStarts=" + Arrays.toString(getRealPrefixStarts())
+                + " pending.size()=" + pending.size());
       }
-      */
+
       // 将term的倒排表写入磁盘，返回磁盘偏移量
       BlockTermState state = postingsWriter.writeTerm(text, termsEnum, docsSeen, norms);
       if (state != null) {
@@ -954,7 +968,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
        
         PendingTerm term = new PendingTerm(text, state);
         pending.add(term);
-        //if (DEBUG) System.out.println("    add pending term = " + text + " pending.size()=" + pending.size());
+        if (DEBUG){
+          System.out.println("BTTW: add pending term = " + term + " pending.size()=" + pending.size());
+        }
 
         sumDocFreq += state.docFreq;
         sumTotalTermFreq += state.totalTermFreq;
@@ -968,14 +984,20 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     // 将term放到栈的顶部
     /** Pushes the new term to the top of the stack, and writes new blocks. */
     private void pushTerm(BytesRef text) throws IOException {
-      // Find common prefix between last term and current term: 找到当前term与上一个term的公共前缀长度
+      // Find common prefix between last term and current term:
+      // 找到当前term与上一个term的公共前缀长度
       int prefixLength = FutureArrays.mismatch(lastTerm.bytes(), 0, lastTerm.length(), text.bytes, text.offset, text.offset + text.length);
-      if (prefixLength == -1) { // Only happens for the first term, if it is empty
+      if (prefixLength == -1) {
+        // Only happens for the first term, if it is empty
+        // 第一次pushTerm才会发生，这时lastTerm为空
         assert lastTerm.length() == 0;
         prefixLength = 0;
       }
 
-      // if (DEBUG) System.out.println("  shared=" + pos + "  lastTerm.length=" + lastTerm.length);
+      if (DEBUG) {
+        System.out.println("BTTW: shared prefixLength=" + prefixLength +
+                "  lastTerm.length=" + lastTerm.length());
+      }
 
       // Close the "abandoned" suffix now:
       for(int i=lastTerm.length()-1;i>=prefixLength;i--) {
@@ -983,8 +1005,18 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         // How many items on top of the stack share the current suffix
         // we are closing:
         int prefixTopSize = pending.size() - prefixStarts[i];
+        if (DEBUG){
+          System.out.println("BTTW: pushTerm write term= " + brToString(text)
+                  + " , lastTerm=" + brToString(lastTerm.get())
+                  + ", prefixTopSize=" + prefixTopSize
+                  + ", pending.size=" + pending.size()
+                  + ", prefixStarts=" + Arrays.toString(prefixStarts)
+          );
+        }
         if (prefixTopSize >= minItemsInBlock) {
-          // if (DEBUG) System.out.println("pushTerm i=" + i + " prefixTopSize=" + prefixTopSize + " minItemsInBlock=" + minItemsInBlock);
+          if (DEBUG) {
+            System.out.println("pushTerm i=" + i + " prefixTopSize=" + prefixTopSize + " minItemsInBlock=" + minItemsInBlock);
+          }
           writeBlocks(i+1, prefixTopSize);
           prefixStarts[i] -= prefixTopSize-1;
         }
@@ -1000,6 +1032,10 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       }
 
       lastTerm.copyBytes(text);
+      if (DEBUG) {
+        System.out.println("BTTW: prefixStarts=" + Arrays.toString(getRealPrefixStarts()));
+        System.out.println("BTTW: lastTerm=" + brToString(lastTerm.get()));
+      }
     }
 
     // Finishes all terms in this field

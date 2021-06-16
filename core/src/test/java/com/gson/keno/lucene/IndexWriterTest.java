@@ -90,6 +90,32 @@ public class IndexWriterTest {
         writer.close();
     }
 
+    @Test
+    public void testBlockTreeTermsWriter2() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        doc.add(new TextField("info",
+                   " a aa ab aba abb abc abd abe abf abg abh abi abj abk abl abm abn" +
+                        " abo abp abq abr abs abt abu abv abw abx aby abz" +
+                        " ac  aca  acb ad ae af az ac ", Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
+    @Test
+    public void testBlockTreeTermsWriter3() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, acef",
+                Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
     /**
      * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}
      * 包含偏移量
