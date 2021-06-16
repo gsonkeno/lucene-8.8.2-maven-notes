@@ -396,7 +396,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     public List<FST<BytesRef>> subIndices;
     public final boolean hasTerms;
     public final boolean isFloor;
-    public final int floorLeadByte;
+    public final int floorLeadByte; // 如果不是floor block生成的PendingBlock，那么该值为 -1
 
     public PendingBlock(BytesRef prefix, long fp, boolean hasTerms, boolean isFloor, int floorLeadByte, List<FST<BytesRef>> subIndices) {
       super(false);
@@ -619,6 +619,11 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // jump to the right floor block.  We just use a naive greedy segmenter here: make a new floor
             // block as soon as we have at least minItemsInBlock.  This is not always best: it often produces
             // a too-small block as the final block:
+            // 如果一个block太大，那么就划分为多个floor block，
+            // 并且在每个floor block中记录后缀的第一个字符作为leading label，
+            // 使得在搜索阶段能通过前缀以及leading label直接跳转到对应的floor block，
+            // 另外每生成一个floor block，该block中至少包含了minItemsInBlock条PendingEntry信息，
+            // 这种划分方式通常会使得最后一个block中包含的信息数量较少。
             boolean isFloor = itemsInBlock < count;
             newBlocks.add(writeBlock(prefixLength, isFloor, nextFloorLeadLabel, nextBlockStart, i, hasTerms, hasSubBlocks));
 

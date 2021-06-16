@@ -74,6 +74,22 @@ public class IndexWriterTest {
         writer.close();
     }
 
+    @Test
+    public void testBlockTreeTermsWriter1() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        doc.add(new TextField("info",
+                  " matter matte matron matrix matrimony matriculate !" +
+                        " melody  melodramatic melodrama  melodious  melodic  mellow " +
+                        " mellifluous  meliorism  melee meld Melbourne   melancholy " +
+                        " megalopolis megalomania megalith megacycle  meeting meet meek " +
+                        " meekly  medium  medulla  medley  most  moss  mostly", Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
     /**
      * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}
      * 包含偏移量
