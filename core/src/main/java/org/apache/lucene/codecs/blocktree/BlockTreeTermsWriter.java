@@ -551,6 +551,13 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     // term/sub-block starting with 't'.  We use this to figure out when
     // to write a new block:
     private final BytesRefBuilder lastTerm = new BytesRefBuilder();
+    // eg: 依次pushTerm  abc, acc, acd, acea, aceb, acee, acef
+    // 则prefixStarts = [0, 1, 3, 6]
+    // 当前term为acef, 含义为terms栈中
+    // 与"acef"前1字符"a"前缀开始相同的term处在terms[0] = "abc"处
+    // 与"acef"前2字符"ac"前缀开始相同的term处在terms[1] = "acc"处
+    // 与"acef"前3字符"ace"前缀开始相同的term处在terms[3] = "acea"处
+    // 与"acef"前4字符"acef"前缀开始相同的term处在terms[6] = "acef"处
     private int[] prefixStarts = new int[8];
     // 类似栈，操作都在列表的尾部(栈顶),栈中的元素可以是term, 也可以是block
     // Pending stack of terms and blocks.  As terms arrive (in sorted order)
