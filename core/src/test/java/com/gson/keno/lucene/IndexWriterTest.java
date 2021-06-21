@@ -108,13 +108,65 @@ public class IndexWriterTest {
     public void testBlockTreeTermsWriter3() throws IOException, URISyntaxException {
         IndexWriter writer = getIndexWriter();
         Document doc = new Document();
-        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, acef",
+//        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, adff",
+//                Field.Store.YES));
+        doc.add(new TextField("info", "abc, acc, acea, aceb, acee, adff",
                 Field.Store.YES));
         writer.addDocument(doc);
 
         writer.commit();
         writer.close();
     }
+
+    @Test
+    public void testBlockTreeTermsWriter4() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+//        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, adff",
+//                Field.Store.YES));
+        doc.add(new TextField("info", "abc, acc, acea, aceb, acec, aced, acee, acef, aceg, aceh, acei, acej, acek," +
+                "acel, acem, acen, aceo, acep, aceq, acer, aces, acet, aceu, acev, acew, acex, acey,acez, d",
+                Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
+    @Test
+    public void testBlockTreeTermsWriter5() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+//        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, adff",
+//                Field.Store.YES));
+        doc.add(new TextField("info", "abc, acc, acea, aceb, acec, aced, acee, acef, aceg, aceh, acei, acej, acek," +
+                "acel, acem, acen, aceo, acep, aceq, acer, aces, acet, aceu, acev, acew, acex, acey, acez, " +
+                "acf, acg, ach,aci, acj, ack, acl, acm, acn, aco, acoa, acob, acoc, acod, acoe, acof, acog, acoh," +
+                "acoi, acoj, acok, acol, acom, acon, acoo, acop, acoq, acor, acos, acot, acou, acov, acow, acox, acoy," +
+                "acoz, ad",
+                Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
+    @Test
+    public void testBlockTreeTermsWriter6() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+//        doc.add(new TextField("info", "abc, acc, acd, acea, aceb, acee, adff",
+//                Field.Store.YES));
+        doc.add(new TextField("info", "abc, acc, acea, aceb, acec, aced, acee, acef, aceg, aceh, acei, acej, acek," +
+                "acel, acem, acen, aceo, acep, aceq, acer, aces, acet, aceu, acev, acew, acex, acey, acez, " +
+                "acf, acg, ach,aci, acj, ack, ad",
+                Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
 
     /**
      * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}

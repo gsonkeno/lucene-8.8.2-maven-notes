@@ -201,12 +201,12 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
   /** Suggested default value for the {@code
    *  minItemsInBlock} parameter to {@link
    *  #BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}. */
-  public final static int DEFAULT_MIN_BLOCK_SIZE = 25;
+  public final static int DEFAULT_MIN_BLOCK_SIZE = 4; // 25
 
   /** Suggested default value for the {@code
    *  maxItemsInBlock} parameter to {@link
    *  #BlockTreeTermsWriter(SegmentWriteState,PostingsWriterBase,int,int)}. */
-  public final static int DEFAULT_MAX_BLOCK_SIZE = 48;
+  public final static int DEFAULT_MAX_BLOCK_SIZE = 6; // 48
 
   //public static boolean DEBUG = false;
   //public static boolean DEBUG2 = false;
@@ -403,7 +403,8 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
     public List<FST<BytesRef>> subIndices;
     public final boolean hasTerms;
     public final boolean isFloor;
-    public final int floorLeadByte; // 如果不是floor block生成的PendingBlock，那么该值为 -1
+    // 如果不是floor block生成的PendingBlock，那么该值为 -1
+    public final int floorLeadByte;
 
     public PendingBlock(BytesRef prefix, long fp, boolean hasTerms, boolean isFloor, int floorLeadByte, List<FST<BytesRef>> subIndices) {
       super(false);
@@ -595,7 +596,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       boolean hasTerms = false;
       // 如果这个值为true，那么这个block中至少有一个sub-block
       boolean hasSubBlocks = false;
-
+      // pending[start]到pending[end]拥有共同前缀
       int start = pending.size()-count;
       int end = pending.size();
       int nextBlockStart = start;
@@ -613,9 +614,11 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // Suffix is 0, i.e. prefix 'foo' and term is
             // 'foo' so the term has empty string suffix
             // in this block
+            // 该term如果与公共前缀相同，则suffixLeadLabel = -1
             assert lastSuffixLeadLabel == -1: "i=" + i + " lastSuffixLeadLabel=" + lastSuffixLeadLabel;
             suffixLeadLabel = -1;
           } else {
+            // byte转int,正数; 记录该term与公共前缀不同的第一个字符(即后缀首字符), 这里我们叫做后缀引导字符
             suffixLeadLabel = term.termBytes[prefixLength] & 0xff;
           }
         } else {
@@ -626,7 +629,8 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         // if (DEBUG) System.out.println("  i=" + i + " ent=" + ent + " suffixLeadLabel=" + suffixLeadLabel);
 
         if (suffixLeadLabel != lastSuffixLeadLabel) {
-          int itemsInBlock = i - nextBlockStart; // 计算当前位置 与 下一个block的起始位置的差值，这个值代表下一个block的Entry的个数
+          // 计算当前位置 与 下一个block的起始位置的差值，这个值代表下一个block的Entry的个数
+          int itemsInBlock = i - nextBlockStart;
           if (itemsInBlock >= minItemsInBlock && end-nextBlockStart > maxItemsInBlock) {
             // The count is too large for one block, so we must break it into "floor" blocks, where we record
             // the leading label of the suffix of the first term in each floor block, so at search time we can
@@ -640,11 +644,13 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             // 这种划分方式通常会使得最后一个block中包含的信息数量较少。
             boolean isFloor = itemsInBlock < count;
             newBlocks.add(writeBlock(prefixLength, isFloor, nextFloorLeadLabel, nextBlockStart, i, hasTerms, hasSubBlocks));
-            System.out.println("1newBlocksSize " + newBlocks.size());
+            // 重置
             hasTerms = false;
             hasSubBlocks = false;
-            nextFloorLeadLabel = suffixLeadLabel; // 更新下一个block的 Lead label
-            nextBlockStart = i; // 记录下一个block的起始位置
+            // 更新下一个block的 Lead label
+            nextFloorLeadLabel = suffixLeadLabel;
+            // 记录下一个block的起始位置(pending哪个位置开始)
+            nextBlockStart = i;
           }
 
           lastSuffixLeadLabel = suffixLeadLabel;
@@ -658,19 +664,24 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       }
       // for循环结束
       // Write last block, if any:
-      // 将最后剩余的Entry写入同一个block，数量小于 maxItemsInBlock
       if (nextBlockStart < end) {
         int itemsInBlock = end - nextBlockStart;
         boolean isFloor = itemsInBlock < count;
         newBlocks.add(writeBlock(prefixLength, isFloor, nextFloorLeadLabel, nextBlockStart, end, hasTerms, hasSubBlocks));
       }
-      System.out.println("0newBlocksSize=" + newBlocks.size());
 
       assert newBlocks.isEmpty() == false;
       // 记录写入磁盘中的所有block中的 root block
       PendingBlock firstBlock = newBlocks.get(0);
 
       assert firstBlock.isFloor || newBlocks.size() == 1;
+      if (DEBUG){
+        for (int i = 1; i < newBlocks.size(); i++) {
+          if (newBlocks.get(i).subIndices != null){
+            System.out.println(" writeBlocks back elements subIndices not null");
+          }
+        }
+      }
       // 对每个写入磁盘的block的前缀 prefix构建一个FST索引
       // 所有block的FST索引联合成一个FST索引，并将联合的FST写入 root block
       firstBlock.compileIndex(newBlocks, scratchBytes, scratchIntsRef);
@@ -682,7 +693,6 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       // Append new block
       // 将 root block写回到 pending栈顶
       pending.add(firstBlock);
-
       newBlocks.clear();
     }
 
@@ -715,7 +725,7 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
       prefix.length = prefixLength;
 
       //if (DEBUG2)
-      System.out.println("    writeBlock field=" + fieldInfo.name + " prefix=" + brToString(prefix) + " fp=" + startFP + " isFloor=" + isFloor + " isLastInFloor=" + (end == pending.size()) + " floorLeadLabel=" + floorLeadLabel + " start=" + start + " end=" + end + " hasTerms=" + hasTerms + " hasSubBlocks=" + hasSubBlocks);
+      System.out.println("  writeBlock field=" + fieldInfo.name + " prefix=" + brToString(prefix) + " fp=" + startFP + " isFloor=" + isFloor + " isLastInFloor=" + (end == pending.size()) + " floorLeadLabel=" + floorLeadLabel + " start=" + start + " end=" + end + " hasTerms=" + hasTerms + " hasSubBlocks=" + hasSubBlocks + " pending" + debugPending());
 
       // Write block header:
       // 写 block header
@@ -858,6 +868,9 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
             suffixLengthsWriter.writeVLong(startFP - block.fp);
             // 将sub-block的term 索引加入subIndices
             subIndices.add(block.index);
+            if (DEBUG){
+              System.out.println("  subIndices add executed");
+            }
           }
         }
         statsWriter.finish();
@@ -897,9 +910,11 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         token |= 0x04;
       }
       token |= compressionAlg.code;
-      termsOut.writeVLong(token); // tim文件写入压缩算法code
+      // tim文件写入压缩算法code
+      termsOut.writeVLong(token);
       if (compressionAlg == CompressionAlgorithm.NO_COMPRESSION) {
-        termsOut.writeBytes(suffixWriter.bytes(), suffixWriter.length()); // tim文件写入term后缀
+        // tim文件写入term后缀
+        termsOut.writeBytes(suffixWriter.bytes(), suffixWriter.length());
       } else {
         spareWriter.writeTo(termsOut);
       }
@@ -988,11 +1003,10 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         lastPendingTerm = term;
       }
     }
-    // 将term放到栈的顶部
+
     /** Pushes the new term to the top of the stack, and writes new blocks. */
     private void pushTerm(BytesRef text) throws IOException {
       // Find common prefix between last term and current term:
-      // 找到当前term与上一个term的公共前缀长度
       int prefixLength = FutureArrays.mismatch(lastTerm.bytes(), 0, lastTerm.length(), text.bytes, text.offset, text.offset + text.length);
       if (prefixLength == -1) {
         // Only happens for the first term, if it is empty
@@ -1000,49 +1014,63 @@ public final class BlockTreeTermsWriter extends FieldsConsumer {
         assert lastTerm.length() == 0;
         prefixLength = 0;
       }
-
       if (DEBUG) {
-        System.out.println("BTTW: shared prefixLength=" + prefixLength +
-                "  lastTerm.length=" + lastTerm.length());
+        System.out.println("BTTW: shared prefixLength=" + prefixLength + "  lastTerm.length=" + lastTerm.length());
       }
-
       // Close the "abandoned" suffix now:
       for(int i=lastTerm.length()-1;i>=prefixLength;i--) {
-
-        // How many items on top of the stack share the current suffix
-        // we are closing:
+        // How many items on top of the stack share the current suffix we are closing:
         int prefixTopSize = pending.size() - prefixStarts[i];
         if (DEBUG){
-          System.out.println("BTTW: pushTerm write term= " + brToString(text)
-                  + " , lastTerm=" + brToString(lastTerm.get())
-                  + ", prefixTopSize=" + prefixTopSize
-                  + ", pending.size=" + pending.size()
-                  + ", prefixStarts=" + Arrays.toString(prefixStarts)
+          System.out.println("BTTW: pushTerm write term= " + brToString(text) +", lastTerm=" + brToString(lastTerm.get())
+                  + ", i=" + i + ", prefixLength=" + prefixLength + ", prefixTopSize=" + prefixTopSize
+                  + ", pending.size=" + pending.size() + ", prefixStarts=" + Arrays.toString(prefixStarts)
           );
         }
         if (prefixTopSize >= minItemsInBlock) {
           if (DEBUG) {
-            System.out.println("pushTerm i=" + i + " prefixTopSize=" + prefixTopSize + " minItemsInBlock=" + minItemsInBlock);
+            System.out.println("BTTW: pushTerm i=" + i + " prefixTopSize=" + prefixTopSize + " minItemsInBlock=" + minItemsInBlock);
           }
           writeBlocks(i+1, prefixTopSize);
+          // why mimus (prefixTopSize-1) on prefixStarts[i] ?
+          // pending[prefixStarts[i]] to pending[pending.size()-1] these term combine into one PendingBlock ,
+          // and added in pending;
+
+          // in here, you just may modify prefixStarts[prefixLength] to prefixStarts[lastTerm.length()-1] value,
+          // but below "Init new tail", you will just init  prefixStarts[prefixLength] to prefixStarts[text.length-1]
+          // and when you read prefixStarts[i], i always less than text.length(lastTerm.length)
+
+          // so, what's meaning of "prefixStarts[i] -= prefixTopSize-1", may be it's unused, I guess
           prefixStarts[i] -= prefixTopSize-1;
+          if (DEBUG){
+            System.out.println("BTTW: pending=" + debugPending() + ",prefixStarts=" + Arrays.toString(getRealPrefixStarts()) + ",lastTerm=" + brToString(lastTerm.get()) + ",currentText=" + brToString(text));
+          }
         }
       }
-      // prefixStartss数组容量扩大到text.length
+      // prefixStarts数组容量扩大到text.length
       if (prefixStarts.length < text.length) {
         prefixStarts = ArrayUtil.grow(prefixStarts, text.length);
       }
-
-      // Init new tail: 当前term与lastTerm的公共前缀长度i下标及其之后,prefixStarts元素赋值
+      // Init new tail:
       for(int i=prefixLength;i<text.length;i++) {
         prefixStarts[i] = pending.size();
       }
 
+
+      // 容易知道，此时prefixStarts的指针指向 针对的是text已经添加到pending
       lastTerm.copyBytes(text);
       if (DEBUG) {
-        System.out.println("BTTW: prefixStarts=" + Arrays.toString(getRealPrefixStarts()));
-        System.out.println("BTTW: lastTerm=" + brToString(lastTerm.get()));
+        System.out.println("BTTW: after lastTerm.copyBytes lastTerm=" + brToString(lastTerm.get()) + ",prefixStarts=" + Arrays.toString(prefixStarts) + ",pending=" + debugPending());
       }
+    }
+
+    private String debugPending(){
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < pending.size(); i++) {
+        PendingEntry pendingEntry = pending.get(i);
+        sb.append(pendingEntry).append(",");
+      }
+      return sb.toString();
     }
 
     // Finishes all terms in this field

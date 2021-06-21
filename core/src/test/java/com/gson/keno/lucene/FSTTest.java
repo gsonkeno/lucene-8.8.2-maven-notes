@@ -19,7 +19,7 @@ public class FSTTest {
         IntsRefBuilder scratchInts = new IntsRefBuilder();
         for (int i = 0; i < inputValues.length; i++) {
             //"mo"对应intsRef为[109,111]
-            IntsRef intsRef = Util.toIntsRef(new BytesRef(inputValues[i]),scratchInts);
+            IntsRef intsRef = Util.toIntsRef(new BytesRef(inputValues[i]) ,scratchInts);
             builder.add(intsRef, outputValues[i]);
         }
         FST<Long> fst = builder.finish();

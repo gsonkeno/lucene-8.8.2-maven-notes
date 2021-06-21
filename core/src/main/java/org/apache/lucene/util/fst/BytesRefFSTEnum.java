@@ -24,7 +24,7 @@ import org.apache.lucene.util.BytesRef;
 
 /** Enumerates all input (BytesRef) + output pairs in an
  *  FST.
- *
+ *  遍历所有的key，value
   * @lucene.experimental
 */
 

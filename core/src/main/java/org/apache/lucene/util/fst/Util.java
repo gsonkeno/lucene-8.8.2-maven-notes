@@ -892,6 +892,7 @@ public final class Util {
 
   /** Just takes unsigned byte values from the BytesRef and
    *  converts into an IntsRef. */
+  // scratch:打草稿用的， 可以理解为一个中间存储变量，记录中间态的，最终没有用的
   public static IntsRef toIntsRef(BytesRef input, IntsRefBuilder scratch) {
     scratch.clear();
     for(int i=0;i<input.length;i++) {
