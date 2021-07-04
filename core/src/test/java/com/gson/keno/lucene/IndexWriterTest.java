@@ -178,6 +178,19 @@ public class IndexWriterTest {
         writer.close();
     }
 
+    @Test
+    public void testBlockTreeTermsWriter8() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        for(int i =0 ; i< 300; i++){
+            Document doc = new Document();
+            doc.add(new TextField("info", i%2 == 0? "a":"b", Field.Store.YES));
+            writer.addDocument(doc);
+        }
+        writer.commit();
+        writer.close();
+    }
+
+
 
     /**
      * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}

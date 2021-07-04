@@ -232,7 +232,7 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
     }
 
     docDeltaBuffer[docBufferUpto] = docDelta;
-    if (writeFreqs) {
+    if (writeFreqs) { // termDocFreq 表示term在此doc中的词频
       freqBuffer[docBufferUpto] = termDocFreq;
     }
     

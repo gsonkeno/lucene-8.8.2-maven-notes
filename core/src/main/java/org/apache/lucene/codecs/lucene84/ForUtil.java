@@ -232,7 +232,7 @@ final class ForUtil {
     } else {
       nextPrimitive = 32;
       numLongs = BLOCK_SIZE / 2;
-      collapse32(longs);
+      collapse32(longs); //重叠
     }
 
     final int numLongsPerShift = bitsPerValue * 2;

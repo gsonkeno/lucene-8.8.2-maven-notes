@@ -40,6 +40,7 @@ public class TestForUtil extends LuceneTestCase {
     for (int i = 0; i < iterations; ++i) {
       final int bpv = TestUtil.nextInt(random(), 1, 31);
       for (int j = 0; j < ForUtil.BLOCK_SIZE; ++j) {
+        // 随机int正数，正数最多占用bpv个bit(显而易见，bpv不会大于31)
         values[i * ForUtil.BLOCK_SIZE + j] = RandomNumbers.randomIntBetween(random(),
             0, (int) PackedInts.maxValue(bpv));
       }
@@ -60,16 +61,19 @@ public class TestForUtil extends LuceneTestCase {
           source[j] = values[i*ForUtil.BLOCK_SIZE+j];
           or |= source[j];
         }
+        // 通过上面的or取或，得到本次迭代组(一个BLOCK)中的最大int正数需要bpv个bit来表示
         final int bpv = PackedInts.bitsRequired(or);
         out.writeByte((byte) bpv);
+        // 编码
         forUtil.encode(source, bpv, out);
       }
       endPointer = out.getFilePointer();
+      System.out.println("编码使用了" + endPointer + "个字节, 编码了" + values.length + "个int正数(正常应占用" + values.length*4 + "个字节)");
       out.close();
     }
 
     {
-      // decode
+      // decode 解码
       IndexInput in = d.openInput("test.bin", IOContext.READONCE);
       final ForUtil forUtil = new ForUtil();
       for (int i = 0; i < iterations; ++i) {
