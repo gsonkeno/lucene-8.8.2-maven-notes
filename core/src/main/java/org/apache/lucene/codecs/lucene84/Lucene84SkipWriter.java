@@ -168,24 +168,27 @@ final class Lucene84SkipWriter extends MultiLevelSkipListWriter {
   protected void writeSkipData(int level, IndexOutput skipBuffer) throws IOException {
 
     int delta = curDoc - lastSkipDoc[level];
-
+    // 先写相邻两个skipDatum的docId差量    DocSkip
     skipBuffer.writeVInt(delta);
     lastSkipDoc[level] = curDoc;
-
+   // 写相邻两个skipDatum的.doc文件的指针差量     docFPSkip
     skipBuffer.writeVLong(curDocPointer - lastSkipDocPointer[level]);
     lastSkipDocPointer[level] = curDocPointer;
 
     if (fieldHasPositions) {
-
+      // 写相邻两个skipDatum的.pos文件的指针差量  posFPSkip
       skipBuffer.writeVLong(curPosPointer - lastSkipPosPointer[level]);
       lastSkipPosPointer[level] = curPosPointer;
+      // 在posDeltaBuffer、payloadLengthBuffer、offsetStartDeltaBuffer、offsetLengthBuffer数组中的数组下标值，即PosBlockOffset
       skipBuffer.writeVInt(curPosBufferUpto);
 
       if (fieldHasPayloads) {
+        // 在payloadBytes数组中的数组下标值，即PayLength
         skipBuffer.writeVInt(curPayloadByteUpto);
       }
 
       if (fieldHasOffsets || fieldHasPayloads) {
+        // payFPSkip
         skipBuffer.writeVLong(curPayPointer - lastSkipPayPointer[level]);
         lastSkipPayPointer[level] = curPayPointer;
       }

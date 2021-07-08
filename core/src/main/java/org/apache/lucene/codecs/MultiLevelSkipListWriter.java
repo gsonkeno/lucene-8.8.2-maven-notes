@@ -52,13 +52,19 @@ import org.apache.lucene.util.MathUtil;
  */
 
 public abstract class MultiLevelSkipListWriter {
-  /** number of levels in this skip list */
+  /** number of levels in this skip list
+   * 该值描述的是我们即将生成的skipList中的层数
+   */
   protected final int numberOfSkipLevels;
   
-  /** the skip interval in the list with level = 0 */
+  /** the skip interval in the list with level = 0
+   * 该值描述了在level=0层，每处理skipInterval篇文档，就生成一个skipDatum，该值默认为128
+   */
   private final int skipInterval;
 
-  /** skipInterval used for level &gt; 0 */
+  /** skipInterval used for level &gt; 0
+   * 该值描述了在所有层，每处理skipMultiplier个skipDatum，就在上一层生成一个新的skipDatum，该值默认为8
+   */
   private final int skipMultiplier;
   
   /** for every skip level a different buffer is used  */
@@ -71,10 +77,13 @@ public abstract class MultiLevelSkipListWriter {
     
     int numberOfSkipLevels;
     // calculate the maximum number of skip levels for this document frequency
+    // 如果df<=128,即不超过128篇文档，则1层跳表即可
     if (df <= skipInterval) {
       numberOfSkipLevels = 1;
     } else {
-      numberOfSkipLevels = 1+MathUtil.log(df/skipInterval, skipMultiplier);
+      // 每8个skipDatum 向上层升级，生成上层一个skipDatum
+      // eg df=128*8; 则df/skipInterval=8,MathUtil.log(df/skipInterval, skipMultiplier) = 1, 需要两层来表示跳表
+      numberOfSkipLevels = 1+ MathUtil.log(df/skipInterval, skipMultiplier);
     }
     
     // make sure it does not exceed maxSkipLevels

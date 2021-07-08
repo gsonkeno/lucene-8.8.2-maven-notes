@@ -80,7 +80,7 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
 
   private byte[] payloadBytes;
   private int payloadByteUpto;
-
+  // Block(128个文档组成一个Block)中的最后一个文档id
   private int lastBlockDocID;
   private long lastBlockPosFP;
   private long lastBlockPayFP;
@@ -236,9 +236,9 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
       freqBuffer[docBufferUpto] = termDocFreq;
     }
     
-    docBufferUpto++;
-    docCount++;
-
+    docBufferUpto++; // 拥有当前term的doc总数，看上去与docCount值一样
+    docCount++; //拥有当前term的文档数自增
+    // https://www.amazingkoala.com.cn/Lucene/suoyinwenjian/2019/0324/42.html
     if (docBufferUpto == BLOCK_SIZE) {
       forDeltaUtil.encodeDeltas(docDeltaBuffer, docOut);
       if (writeFreqs) {
@@ -270,7 +270,7 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
       norm = 1L;
     }
 
-    competitiveFreqNormAccumulator.add(writeFreqs ? termDocFreq : 1, norm);
+    competitiveFreqNormAccumulator.add(writeFreqs ? termDocFreq : 1, norm); // 待研究
   }
 
   @Override
@@ -328,7 +328,7 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
     // Since we don't know df for current term, we had to buffer
     // those skip data for each block, and when a new doc comes, 
     // write them to skip file.
-    if (docBufferUpto == BLOCK_SIZE) {
+    if (docBufferUpto == BLOCK_SIZE) {   // 达到BlockSize=128，就会生成一个SkipData
       lastBlockDocID = lastDocID;
       if (posOut != null) {
         if (payOut != null) {
@@ -338,7 +338,7 @@ public final class Lucene84PostingsWriter extends PushPostingsWriterBase {
         lastBlockPosBufferUpto = posBufferUpto;
         lastBlockPayloadByteUpto = payloadByteUpto;
       }
-      docBufferUpto = 0;
+      docBufferUpto = 0; // 每到128，就会重置
     }
   }
 

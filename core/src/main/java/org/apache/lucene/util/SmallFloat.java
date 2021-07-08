@@ -102,18 +102,27 @@ public class SmallFloat {
     if (i < 0) {
       throw new IllegalArgumentException("Only supports positive values, got " + i);
     }
+    // 表达i所需要的bit个数
     int numBits = 64 - Long.numberOfLeadingZeros(i);
     if (numBits < 4) {
       // subnormal value
+      // 0-3个bit所能表示的long数字直接强转为int, i肯定在[0,7]之间
       return Math.toIntExact(i);
     } else {
       // normal value
+      // [8-15] ,  numBit=4,  shift=0,   encoded=[1,7]|8=[9,15]
+      // [16-17],  numBit=5,  shift=1,   encoded=[0,0]|16=[16,16]
+      // [18-19],  numBit=6,  shift=1,   encoded=[1,1]|16=[17,17]
+      // [20-21],  numBit=7,  shift=1,   encoded=[2,2]|16=[18,18]
+
       int shift = numBits - 4;
       // only keep the 5 most significant bits
+      // 无符号右移，只保留高4位，且这高4位被无符号右移到最低位, 则encoded只有4个bit， encoded在[0-15]
       int encoded = Math.toIntExact(i >>> shift);
       // clear the most significant bit, which is implicit
-      encoded &= 0x07;
+      encoded &= 0x07; //只保留末尾3位了, 结果位[0,7]
       // encode the shift, adding 1 because 0 is reserved for subnormal values
+      // shift范围[0,59],则(shift + 1) << 3范围为[8,480], 则encoded范围为[8,487]
       encoded |= (shift + 1) << 3;
       return encoded;
     }

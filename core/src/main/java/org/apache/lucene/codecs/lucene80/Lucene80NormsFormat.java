@@ -76,6 +76,12 @@ import org.apache.lucene.store.DataOutput;
  * @lucene.experimental
  */
 public class Lucene80NormsFormat extends NormsFormat {
+  private static final String DATA_CODEC = "Lucene80NormsData";
+  private static final String DATA_EXTENSION = "nvd";
+  private static final String METADATA_CODEC = "Lucene80NormsMetadata";
+  private static final String METADATA_EXTENSION = "nvm";
+  static final int VERSION_START = 0;
+  static final int VERSION_CURRENT = VERSION_START;
 
   /** Sole Constructor */
   public Lucene80NormsFormat() {}
@@ -90,10 +96,5 @@ public class Lucene80NormsFormat extends NormsFormat {
     return new Lucene80NormsProducer(state, DATA_CODEC, DATA_EXTENSION, METADATA_CODEC, METADATA_EXTENSION);
   }
   
-  private static final String DATA_CODEC = "Lucene80NormsData";
-  private static final String DATA_EXTENSION = "nvd";
-  private static final String METADATA_CODEC = "Lucene80NormsMetadata";
-  private static final String METADATA_EXTENSION = "nvm";
-  static final int VERSION_START = 0;
-  static final int VERSION_CURRENT = VERSION_START;
+
 }

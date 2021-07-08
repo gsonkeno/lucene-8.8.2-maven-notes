@@ -178,12 +178,17 @@ public class IndexWriterTest {
         writer.close();
     }
 
+    /**
+     * 测试Lucene84PostingWriter
+     * @throws IOException
+     * @throws URISyntaxException
+     */
     @Test
     public void testBlockTreeTermsWriter8() throws IOException, URISyntaxException {
         IndexWriter writer = getIndexWriter();
-        for(int i =0 ; i< 300; i++){
+        for(int i =0 ; i< 400; i++){
             Document doc = new Document();
-            doc.add(new TextField("info", i%2 == 0? "a":"b", Field.Store.YES));
+            doc.add(new TextField("info", i%3 == 0? "a":"b", Field.Store.YES));
             writer.addDocument(doc);
         }
         writer.commit();

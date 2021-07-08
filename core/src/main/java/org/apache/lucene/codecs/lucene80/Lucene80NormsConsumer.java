@@ -35,12 +35,12 @@ import static org.apache.lucene.codecs.lucene80.Lucene80NormsFormat.VERSION_CURR
  * Writer for {@link Lucene80NormsFormat}
  */
 final class Lucene80NormsConsumer extends NormsConsumer {
-  IndexOutput data, meta;
+  IndexOutput data, meta; // .nvd,  .nvm
   final int maxDoc;
 
   Lucene80NormsConsumer(SegmentWriteState state, String dataCodec, String dataExtension, String metaCodec, String metaExtension) throws IOException {
     boolean success = false;
-    try {
+    try { // .nvd
       String dataName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, dataExtension);
       data = state.directory.createOutput(dataName, state.context);
       CodecUtil.writeIndexHeader(data, dataCodec, VERSION_CURRENT, state.segmentInfo.getId(), state.segmentSuffix);
@@ -81,7 +81,7 @@ final class Lucene80NormsConsumer extends NormsConsumer {
   @Override
   public void addNormsField(FieldInfo field, NormsProducer normsProducer) throws IOException {
     NumericDocValues values = normsProducer.getNorms(field);
-    int numDocsWithValue = 0;
+    int numDocsWithValue = 0; // 包含当前域的文档个数
     long min = Long.MAX_VALUE;
     long max = Long.MIN_VALUE;
     for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
