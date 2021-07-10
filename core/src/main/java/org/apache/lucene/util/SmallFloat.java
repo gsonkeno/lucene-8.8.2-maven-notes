@@ -97,7 +97,10 @@ public class SmallFloat {
     return Float.intBitsToFloat(bits);
   }
 
-  /** Float-like encoding for positive longs that preserves ordering and 4 significant bits. */
+  /** Float-like encoding for positive longs that preserves ordering and 4 significant bits.
+   * 将一个long型正数编码为一个int型正数，且保证了原来的相对有序性
+   * 返回结果[0,487]
+   */
   public static int longToInt4(long i) {
     if (i < 0) {
       throw new IllegalArgumentException("Only supports positive values, got " + i);
@@ -124,6 +127,7 @@ public class SmallFloat {
       // encode the shift, adding 1 because 0 is reserved for subnormal values
       // shift范围[0,59],则(shift + 1) << 3范围为[8,480], 则encoded范围为[8,487]
       encoded |= (shift + 1) << 3;
+      // 返回结果为[8,487]，数值的大小主要是靠(shift + 1) << 3影响
       return encoded;
     }
   }
@@ -136,16 +140,22 @@ public class SmallFloat {
     int shift = (i >>> 3) - 1;
     long decoded;
     if (shift == -1) {
+
       // subnormal value
+     //  i处于[0,7]时，shift = -1, 返回i，输入=输出
       decoded = bits;
     } else {
       // normal value
+      // bits永远处于[0,7], 或0x08相当于+8,   shift=i/8-1;
+      // i越大，shift越大, decoded越大，正相关
       decoded = (bits | 0x08) << shift;
     }
     return decoded;
   }
 
+  // 231
   private static final int MAX_INT4 = longToInt4(Integer.MAX_VALUE);
+  // 24
   private static final int NUM_FREE_VALUES = 255 - MAX_INT4;
 
   /**
@@ -157,9 +167,12 @@ public class SmallFloat {
     if (i < 0) {
       throw new IllegalArgumentException("Only supports positive values, got " + i);
     }
+    // NUM_FREE_VALUES = 24; 不足24原样返回
     if (i < NUM_FREE_VALUES) {
       return (byte) i;
     } else {
+      // 已知longToInt4(Integer.MAX_VALUE) = 231
+      // 不小于24, 则返回结果区间为[24, 24 + 231]，即[24,255]
       return (byte) (NUM_FREE_VALUES + longToInt4(i - NUM_FREE_VALUES));
     }
   }

@@ -80,4 +80,8 @@ public class OutputStreamIndexOutput extends IndexOutput {
     os.flush();
     return crc.getValue();
   }
+
+  public BufferedOutputStream getOs() {
+    return os;
+  }
 }

@@ -17,7 +17,9 @@
 package com.gson.keno.lucene;
 
 
+import org.apache.lucene.mockfile.FilterPath;
 import org.apache.lucene.store.*;
+import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.TestUtil;
 import org.junit.AfterClass;
@@ -26,7 +28,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Random;
 
 public class IndexInputTest extends LuceneTestCase {
@@ -171,4 +175,59 @@ public class IndexInputTest extends LuceneTestCase {
     os.close();
   }
 
+  @Test
+  public void testInput() throws IOException, URISyntaxException {
+    String indexDirStr = Paths.get(this.getClass().getResource("").toURI())
+            + "/indexPosition";
+    Directory dir = FSDirectory.open(Paths.get(indexDirStr));
+    // [0, 0, 0, 0, -74, 16, 14, -29, 101, 110, 101, 56, 48, 78, 111, 114, 109, 115, 68, 97,
+    // 116, 97, 0, 0, 0, 0, -53, -112, 64, -122, -67, 42, 39, 35, -21, 13, -96, -29, -40, -55,
+    // 81, 70, 0, -64, 40, -109, -24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, +8,092 more]
+
+
+    //[0, 0, 0, 0, 49, 99, -111, 84, 101, 110, 101, 56, 48, 78, 111, 114, 109, 115, 68, 97,
+    // 116, 97, 0, 0, 0, 0, 116, -18, 125, 35, 104, 73, 53, -16, 42, -74, 111, -7,
+    // -20, 65, -16, -32, 0, -64, 40, -109, -24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, +8,092 more]
+    IndexInput in = dir.openInput("_7.nvd", IOContext.DEFAULT);
+    byte[] a = new byte[(int)in.length()];
+    in.readBytes(a, 0, a.length);
+    System.out.println(Arrays.toString(a));
+  }
+
+  @Test
+  public void testInputOutput() throws IOException, URISyntaxException {
+    String indexDirStr = Paths.get(this.getClass().getResource("").toURI())
+            + "/indexPosition";
+    Directory directory = FSDirectory.open(Paths.get(indexDirStr));
+    IndexOutput output = directory.createOutput("target.txt", IOContext.DEFAULT);
+    output.writeByte((byte) 60);
+    output.writeByte((byte) 61);
+    output.writeByte((byte) 62);
+    output.writeByte((byte) 63);
+    output.writeByte((byte) 64);
+    output.writeByte((byte) 65);
+    output.writeByte((byte) 66);
+    output.writeByte((byte) 67);
+    output.writeByte((byte) 68);
+    output.writeByte((byte) 69);
+    output.writeByte((byte) 71);
+    output.writeByte((byte) 72);
+    output.writeByte((byte) 73);
+    output.writeByte((byte) 74);
+    output.writeByte((byte) 75);
+    output.writeByte((byte) 76);
+    output.writeByte((byte) 77);
+    output.close();
+
+    IndexInput input = directory.openInput("target.txt", IOContext.DEFAULT);
+    assertEquals(60, input.readByte());
+    assertEquals(61, input.readByte());
+    assertEquals(62, input.readByte());
+    IOUtils.close(input, directory);
+    directory.deleteFile("target.txt");
+  }
 }

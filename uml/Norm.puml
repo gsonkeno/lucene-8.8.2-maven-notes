@@ -1,0 +1,40 @@
+@startuml
+
+
+abstract class NormsConsumer
+NormsConsumer <|-- Lucene80NormsConsumer
+
+abstract class NormsFormat
+NormsFormat <|-- Lucene80NormsFormat
+
+
+abstract class NormsProducer
+NormsProducer <|-- Lucene80NormsProducer
+
+class NormsFormat{
++{abstract}NormsConsumer normsConsumer(SegmentWriteState)
++{abstract}NormsProducer normsProducer(SegmentReadState)
+}
+
+class NormsProducer{
++{abstract}NumericDocValues getNorms(FieldInfo)
+}
+
+class NormsConsumer{
++{abstract}void addNormsField(FieldInfo, NormsProducer)
+}
+
+class NormVauesWriter{
++flush(SegmentWriteState,Sorter.DocMap , NormsConsumer)
+}
+
+NormsFormat -[dotted]-> NormsProducer : create
+NormsFormat -[dotted]-> NormsConsumer : create
+NormVauesWriter-[dotted]-> NormsConsumer: use
+
+
+class Lucene80NormsFormat{
+
+}
+
+@enduml

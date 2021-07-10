@@ -79,7 +79,7 @@ public class IndexWriterTest {
         IndexWriter writer = getIndexWriter();
         Document doc = new Document();
         doc.add(new TextField("info",
-                  " matter matte matron matrix matrimony matriculate !" +
+                " matter matte matron matrix matrimony matriculate !" +
                         " melody  melodramatic melodrama  melodious  melodic  mellow " +
                         " mellifluous  meliorism  melee meld Melbourne   melancholy " +
                         " megalopolis megalomania megalith megacycle  meeting meet meek " +
@@ -95,7 +95,7 @@ public class IndexWriterTest {
         IndexWriter writer = getIndexWriter();
         Document doc = new Document();
         doc.add(new TextField("info",
-                   " a aa ab aba abb abc abd abe abf abg abh abi abj abk abl abm abn" +
+                " a aa ab aba abb abc abd abe abf abg abh abi abj abk abl abm abn" +
                         " abo abp abq abr abs abt abu abv abw abx aby abz" +
                         " ac  aca  acb ad ae af az ac ", Field.Store.YES));
         writer.addDocument(doc);
@@ -180,21 +180,46 @@ public class IndexWriterTest {
 
     /**
      * 测试Lucene84PostingWriter
+     *
      * @throws IOException
      * @throws URISyntaxException
      */
     @Test
     public void testBlockTreeTermsWriter8() throws IOException, URISyntaxException {
         IndexWriter writer = getIndexWriter();
-        for(int i =0 ; i< 400; i++){
+        for (int i = 0; i < 400; i++) {
             Document doc = new Document();
-            doc.add(new TextField("info", i%3 == 0? "a":"b", Field.Store.YES));
+            doc.add(new TextField("info", i % 3 == 0 ? "a" : "b", Field.Store.YES));
             writer.addDocument(doc);
         }
         writer.commit();
         writer.close();
     }
 
+    @Test
+    public void testNormalValue() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 50; i++) {
+            for (char j = 'A'; j < 'z'; j++) {
+                sb.append(i + "" +  j +" ");
+            }
+        }
+        String s = sb.toString();
+
+        doc.add(new TextField("info", s, Field.Store.YES));
+        doc.add(new TextField("school", "Ji Nan University", Field.Store.YES));
+        writer.addDocument(doc);
+
+        // 第2篇文档
+        doc = new Document();
+        doc.add(new TextField("info", "ok", Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
 
 
     /**

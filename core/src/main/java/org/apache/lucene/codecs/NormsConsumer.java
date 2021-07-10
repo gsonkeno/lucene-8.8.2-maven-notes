@@ -109,6 +109,8 @@ public abstract class NormsConsumer implements Closeable {
                   new NormsProducer() {
                     @Override
                     public NumericDocValues getNorms(FieldInfo fieldInfo) throws IOException {
+                      // 这里只是强调，addNormsField方法只有一个实现，内部调用NormsProducer.getNorms方法时入参
+                      // 正是addNormsField方法的第一个参数
                       if (fieldInfo != mergeFieldInfo) {
                         throw new IllegalArgumentException("wrong fieldInfo");
                       }

@@ -27,7 +27,9 @@ import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
 
 /** Buffers up pending long per doc, then flushes when
- *  segment flushes. */
+ *  segment flushes.
+ *  写索引时每个filed一个实例
+ */
 class NormValuesWriter {
 
   private DocsWithFieldSet docsWithField;

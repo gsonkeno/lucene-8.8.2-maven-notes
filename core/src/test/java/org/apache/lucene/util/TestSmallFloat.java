@@ -122,25 +122,41 @@ public class TestSmallFloat extends LuceneTestCase {
     }
   }
 
+  public void testInt4ToLong(){
+    for (int i = 0; i <=200; i++) {
+      System.out.println(i + "-->" + SmallFloat.int4ToLong(i));
+    }
+
+    System.out.println(SmallFloat.int4ToLong(18));
+    System.out.println(SmallFloat.longToInt4(20));
+
+    System.out.println(((byte)254));
+    System.out.println(((byte)253));
+    System.out.println(((byte)252));
+    System.out.println(((byte)128));
+    System.out.println(Byte.toUnsignedInt((byte)252));
+  }
+
   public void testLongToInt4(){
     for (long i = 0; i < 200; i++) {
       System.out.println(i + "-->" + SmallFloat.longToInt4(i));
     }
-    System.out.println(SmallFloat.longToInt4(0x6F80_0000_0000_0000L)); //485
-    System.out.println( SmallFloat.longToInt4(0x6FFF_FFFF_FFFF_FFFFL));
-    System.out.println(SmallFloat.longToInt4(0x7000_0000_0000_0000L - 1L)); //485
+    System.out.println( "Integer.MAX_VALUE--> " + SmallFloat.longToInt4(Integer.MAX_VALUE));
+    System.out.println( "Integer.MAX_VALUE - 24 --> " + SmallFloat.longToInt4(Integer.MAX_VALUE - 24));
+    System.out.println( 0x6F80_0000_0000_0000L + "-->" + SmallFloat.longToInt4(0x6F80_0000_0000_0000L)); //485
+    System.out.println( 0x6FFF_FFFF_FFFF_FFFFL + "-->" +  SmallFloat.longToInt4(0x6FFF_FFFF_FFFF_FFFFL));
+    System.out.println( (0x7000_0000_0000_0000L - 1L) + "-->" + SmallFloat.longToInt4(0x7000_0000_0000_0000L - 1L)); //485
 
-    System.out.println(SmallFloat.longToInt4(0x7000_0000_0000_0000L)); //486
-    System.out.println(SmallFloat.longToInt4(0x77FF_FFFF_FFFF_FFFFL));
-    System.out.println(SmallFloat.longToInt4(0x7800_0000_0000_0000L -1 )); //486
+    System.out.println(0x7000_0000_0000_0000L + "-->" +  SmallFloat.longToInt4(0x7000_0000_0000_0000L)); //486
+    System.out.println(0x77FF_FFFF_FFFF_FFFFL + "-->" +  SmallFloat.longToInt4(0x77FF_FFFF_FFFF_FFFFL));
+    System.out.println((0x7800_0000_0000_0000L -1) + "-->" + SmallFloat.longToInt4(0x7800_0000_0000_0000L -1 )); //486
 
-    System.out.println(SmallFloat.longToInt4(0x7800_0000_0000_0000L)); //487
-    System.out.println(SmallFloat.longToInt4(0x7FFF_FFFF_FFFF_FFFFL));
+    System.out.println(0x7800_0000_0000_0000L + "-->" + SmallFloat.longToInt4(0x7800_0000_0000_0000L)); //487
+    System.out.println(0x7FFF_FFFF_FFFF_FFFFL + "-->" + SmallFloat.longToInt4(0x7FFF_FFFF_FFFF_FFFFL));
 
   }
 
   public void testInt4() {
-    System.out.println(Long.numberOfLeadingZeros(16));
     for (int i = 0; i <= 16; ++i) {
       // all values in 0-16 are encoded accurately
       assertEquals(i, SmallFloat.int4ToLong(SmallFloat.longToInt4(i)));
