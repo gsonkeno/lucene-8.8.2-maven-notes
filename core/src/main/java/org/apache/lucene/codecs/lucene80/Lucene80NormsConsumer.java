@@ -33,9 +33,11 @@ import static org.apache.lucene.codecs.lucene80.Lucene80NormsFormat.VERSION_CURR
 
 /**
  * Writer for {@link Lucene80NormsFormat}
+ * https://www.amazingkoala.com.cn/Lucene/suoyinwenjian/2019/0305/39.html
  */
 final class Lucene80NormsConsumer extends NormsConsumer {
-    IndexOutput data, meta; // .nvd,  .nvm
+    // .nvd,  .nvm
+    IndexOutput data, meta;
     final int maxDoc;
     // dataCodec = "Lucene80NormsData"
     Lucene80NormsConsumer(SegmentWriteState state, String dataCodec, String dataExtension, String metaCodec, String metaExtension) throws IOException {
@@ -97,6 +99,10 @@ final class Lucene80NormsConsumer extends NormsConsumer {
         int numDocsWithValue = 0;
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
+        // 遍历包含当前field的每篇文档，
+        // min为当前field在所有出现过的文档中的normValue最小值,
+        // max为当前field在所有出现过的文档中的normValue最大值,
+        // (每个文档中的每个field都有一个norValue值的,可见 BM25Similarity.computeNorm方法)
         for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
             numDocsWithValue++;
             long v = values.longValue();
@@ -108,33 +114,45 @@ final class Lucene80NormsConsumer extends NormsConsumer {
         meta.writeInt(field.number);
 
         if (numDocsWithValue == 0) {
+            assert false;
+            // field没出现在任何doc中这种情况, 我想了下，实际不会出现这种情况
             meta.writeLong(-2); // docsWithFieldOffset
             meta.writeLong(0L); // docsWithFieldLength
             meta.writeShort((short) -1); // jumpTableEntryCount
             meta.writeByte((byte) -1); // denseRankPower
         } else if (numDocsWithValue == maxDoc) {
+            // field出现在所有文档
             meta.writeLong(-1); // docsWithFieldOffset
             meta.writeLong(0L); // docsWithFieldLength
             meta.writeShort((short) -1); // jumpTableEntryCount
             meta.writeByte((byte) -1); // denseRankPower
         } else {
+            // field只出现在部分doc中这种情况
             long offset = data.getFilePointer();
-            meta.writeLong(offset); // docsWithFieldOffset
+            // docsWithFieldOffset
+            // nvm中第一个写nvd文件位置的指针
+            meta.writeLong(offset);
             values = normsProducer.getNorms(field);
             final short jumpTableEntryCount = IndexedDISI.writeBitSet(values, data, IndexedDISI.DEFAULT_DENSE_RANK_POWER);
-            meta.writeLong(data.getFilePointer() - offset); // docsWithFieldLength
+            // docsWithFieldLength
+            meta.writeLong(data.getFilePointer() - offset);
             meta.writeShort(jumpTableEntryCount);
             meta.writeByte(IndexedDISI.DEFAULT_DENSE_RANK_POWER);
         }
-
+        // 包含当前域的文档个数
         meta.writeInt(numDocsWithValue);
+        //找出当前域在所有所属文档中的最大跟最小的两个标准化值来判断存储一个标准化值最大需要的字节数，
+        // 这里还是出于优化索引空间的目的。由于最小值有可能是负数，所以不能仅仅靠最大值来判断存储一个标准化值需要的字节数。
+        // 比如说最小值min为 -130(需要2个字节)，最大值max为5(需要1个字节)，那么此时需要根据min来决定字节个数。
         int numBytesPerValue = numBytesPerValue(min, max);
 
         meta.writeByte((byte) numBytesPerValue);
         if (numBytesPerValue == 0) {
             meta.writeLong(min);
         } else {
-            meta.writeLong(data.getFilePointer()); // normsOffset
+            // normsOffset
+            // nvm中第二个写nvd文件位置的指针
+            meta.writeLong(data.getFilePointer());
             values = normsProducer.getNorms(field);
             writeValues(values, numBytesPerValue, data);
         }

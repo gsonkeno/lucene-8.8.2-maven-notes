@@ -207,7 +207,6 @@ public class IndexWriterTest {
             }
         }
         String s = sb.toString();
-
         doc.add(new TextField("info", s, Field.Store.YES));
         doc.add(new TextField("school", "Ji Nan University", Field.Store.YES));
         writer.addDocument(doc);
@@ -215,6 +214,11 @@ public class IndexWriterTest {
         // 第2篇文档
         doc = new Document();
         doc.add(new TextField("info", "ok", Field.Store.YES));
+        writer.addDocument(doc);
+
+        // 第3篇文档
+        doc = new Document();
+        doc.add(new TextField("school", "Xin Yang", Field.Store.YES));
         writer.addDocument(doc);
 
         writer.commit();
