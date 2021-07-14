@@ -33,6 +33,14 @@ import org.apache.lucene.util.BytesRef;
  */
 public abstract class DataOutput {
 
+  /**
+   * 获取已经写入的字节数组，测试使用
+   * @return
+   */
+  public  byte[] getWrittenBytes(){
+    return null;
+  }
+
   /** Writes a single byte.
    * <p>
    * The most primitive data type is an eight-bit byte. Files are 

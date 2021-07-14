@@ -19,8 +19,10 @@ package org.apache.lucene.codecs.compressing;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.apache.lucene.DebugUtil;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.codecs.StoredFieldsWriter;
@@ -50,6 +52,7 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * {@link StoredFieldsWriter} impl for {@link CompressingStoredFieldsFormat}.
+ * 在整个处理一批doc的过程中，是一个单例子
  * @lucene.experimental
  */
 public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
@@ -120,8 +123,11 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
       assert CodecUtil.indexHeaderLength(INDEX_CODEC_NAME + "Meta", segmentSuffix) == metaStream.getFilePointer();
 
       fieldsStream = directory.createOutput(IndexFileNames.segmentFileName(segment, segmentSuffix, FIELDS_EXTENSION), context);
+      long oldFp = fieldsStream.getFilePointer();
       CodecUtil.writeIndexHeader(fieldsStream, formatName, VERSION_CURRENT, si.getId(), segmentSuffix);
       assert CodecUtil.indexHeaderLength(formatName, segmentSuffix) == fieldsStream.getFilePointer();
+      DebugUtil.debug("CompressingStoredFieldWriter",
+              "fdt_writerIndexHeader" , oldFp,  fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
 
       indexWriter = new FieldsIndexWriter(directory, segment, segmentSuffix, INDEX_EXTENSION, INDEX_CODEC_NAME, si.getId(), blockShift, context);
 
@@ -152,6 +158,7 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
 
   @Override
   public void startDocument() throws IOException {
+    System.out.println("CompressingStoredFieldsWriter.startDocument");
   }
 
   @Override
@@ -205,7 +212,9 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
     final int slicedBit = sliced ? 1 : 0;
     
     // save docBase and numBufferedDocs
+    long oldFp = fieldsStream.getFilePointer();
     fieldsStream.writeVInt(docBase);
+    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_writeDocBase", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
     fieldsStream.writeVInt((numBufferedDocs) << 1 | slicedBit);
 
     // save numStoredFields

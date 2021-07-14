@@ -481,7 +481,7 @@ final class DefaultIndexingChain extends DocConsumer {
     // running "at once"):
 
     termsHash.startDocument();
-
+    // 最终调用 CompressingStoredFieldsWriter.startDocument 当前空实现
     startStoredFields(docID);
     try {
       for (IndexableField field : document) {

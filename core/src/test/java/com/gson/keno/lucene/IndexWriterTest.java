@@ -225,6 +225,36 @@ public class IndexWriterTest {
         writer.close();
     }
 
+    @Test
+    public void testNormalValue1() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        doc.add(new TextField("info", "ok", Field.Store.YES));
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
+    @Test
+    public void testFdx() throws IOException, URISyntaxException {
+        IndexWriter writer = getIndexWriter();
+        Document doc = new Document();
+        doc.add(new TextField("info", "ok", Field.Store.YES));
+        doc.add(new TextField("name", "li lin", Field.Store.YES));
+        writer.addDocument(doc);
+
+        doc = new Document();
+        doc.add(new TextField("info", "my", Field.Store.YES));
+        doc.add(new TextField("name", "jie xin", Field.Store.YES));
+        doc.add(new TextField("school", "xuan ying", Field.Store.YES));
+
+        writer.addDocument(doc);
+
+        writer.commit();
+        writer.close();
+    }
+
 
     /**
      * 测试只增加倒排索引,索引选项为{@link org.apache.lucene.index.IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}

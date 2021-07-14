@@ -20,6 +20,7 @@ package org.apache.lucene.store;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedOutputStream;
 
@@ -31,6 +32,12 @@ public class OutputStreamIndexOutput extends IndexOutput {
   
   private long bytesWritten = 0L;
   private boolean flushedOnClose = false;
+  private byte[] writtenBytes = new byte[81920];
+
+  @Override
+  public byte[] getWrittenBytes() {
+    return Arrays.copyOf(writtenBytes, (int) bytesWritten);
+  }
 
   /**
    * Creates a new {@link OutputStreamIndexOutput} with the given buffer size. 
@@ -45,12 +52,16 @@ public class OutputStreamIndexOutput extends IndexOutput {
   @Override
   public final void writeByte(byte b) throws IOException {
     os.write(b);
+    writtenBytes[(int) bytesWritten] = b;
     bytesWritten++;
   }
   
   @Override
   public final void writeBytes(byte[] b, int offset, int length) throws IOException {
     os.write(b, offset, length);
+    for (int i = 0; i < length; i++) {
+      writtenBytes[(int) (bytesWritten + i)] = b[offset + i];
+    }
     bytesWritten += length;
   }
 
