@@ -52,7 +52,7 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * {@link StoredFieldsWriter} impl for {@link CompressingStoredFieldsFormat}.
- * 在整个处理一批doc的过程中，是一个单例子
+ * 在整个处理一批doc的过程中，是一个单例
  * @lucene.experimental
  */
 public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
@@ -89,6 +89,10 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
 
   private Compressor compressor;
   private final CompressionMode compressionMode;
+  /**
+   * @see  org.apache.lucene.codecs.lucene87.Lucene87StoredFieldsFormat#BEST_SPEED_BLOCK_LENGTH
+   * 10 * 60 * 1024 = 600KB
+   */
   private final int chunkSize;
   private final int maxDocsPerChunk;
 
@@ -96,7 +100,7 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
   private int[] numStoredFields; // number of stored fields
   private int[] endOffsets; // end offsets in bufferedDocs
   private int docBase; // doc ID at the beginning of the chunk
-  private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID
+  private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID, 每finishDocument一次，加1
   
   private long numDirtyChunks; // number of incomplete compressed blocks written
   private long numDirtyDocs; // cumulative number of missing docs in incomplete chunks
@@ -128,7 +132,7 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
       assert CodecUtil.indexHeaderLength(formatName, segmentSuffix) == fieldsStream.getFilePointer();
       DebugUtil.debug("CompressingStoredFieldWriter",
               "fdt_writerIndexHeader" , oldFp,  fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
-
+      // blockShift = 10
       indexWriter = new FieldsIndexWriter(directory, segment, segmentSuffix, INDEX_EXTENSION, INDEX_CODEC_NAME, si.getId(), blockShift, context);
 
       metaStream.writeVInt(chunkSize);
@@ -153,16 +157,102 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
       compressor = null;
     }
   }
-
+  // 描述一篇文档中有几个stored的字段
   private int numStoredFieldsInDoc;
 
+  /**
+   * 对于每个文档，在处理field之前会调用该方法仅一次
+   * @throws IOException
+   */
   @Override
   public void startDocument() throws IOException {
     System.out.println("CompressingStoredFieldsWriter.startDocument");
   }
 
+  /**
+   * 对于每个文档，每个field都会依次调用该方法
+   * @param info
+   * @param field
+   * @throws IOException
+   */
+  @Override
+  public void writeField(FieldInfo info, IndexableField field)
+          throws IOException {
+    System.out.println("before writeField, filed=" + info.name + ",numStoredFieldsInDoc=" + numStoredFieldsInDoc + ",bufferedDocs.length=" + bufferedDocs.toArrayCopy().length +",bufferedDocs=" + Arrays.toString(bufferedDocs.toArrayCopy()));
+    ++numStoredFieldsInDoc;
+
+    int bits = 0;
+    final BytesRef bytes;
+    final String string;
+
+    Number number = field.numericValue();
+    Object realValue = null;
+    if (number != null) {
+      if (number instanceof Byte || number instanceof Short || number instanceof Integer) {
+        bits = NUMERIC_INT;
+      } else if (number instanceof Long) {
+        bits = NUMERIC_LONG;
+      } else if (number instanceof Float) {
+        bits = NUMERIC_FLOAT;
+      } else if (number instanceof Double) {
+        bits = NUMERIC_DOUBLE;
+      } else {
+        throw new IllegalArgumentException("cannot store numeric type " + number.getClass());
+      }
+      string = null;
+      bytes = null;
+      realValue = number;
+    } else {
+      bytes = field.binaryValue();
+      if (bytes != null) {
+        bits = BYTE_ARR;
+        string = null;
+        realValue = bytes;
+      } else {
+        // 字段的值是字符串，这种情况较多些
+        bits = STRING;
+        string = field.stringValue();
+        realValue = string;
+        if (string == null) {
+          throw new IllegalArgumentException("field " + field.name() + " is stored but does not have binaryValue, stringValue nor numericValue");
+        }
+      }
+    }
+    // field是有数字编号与之一一对应的, info.number就是数字编号
+    // bits的最大值可能为0x0005,需要3个bit才能表示
+    // 则infoAndBits的低3位则为bits的值，除此之外的高位表示的是field编号值
+    final long infoAndBits = (((long) info.number) << TYPE_BITS) | bits;
+    byte[] oldArrayCopy = bufferedDocs.toArrayCopy();
+    bufferedDocs.writeVLong(infoAndBits);
+
+    if (bytes != null) {
+      bufferedDocs.writeVInt(bytes.length);
+      bufferedDocs.writeBytes(bytes.bytes, bytes.offset, bytes.length);
+    } else if (string != null) {
+      bufferedDocs.writeString(string);
+    } else {
+      if (number instanceof Byte || number instanceof Short || number instanceof Integer) {
+        bufferedDocs.writeZInt(number.intValue());
+      } else if (number instanceof Long) {
+        writeTLong(bufferedDocs, number.longValue());
+      } else if (number instanceof Float) {
+        writeZFloat(bufferedDocs, number.floatValue());
+      } else if (number instanceof Double) {
+        writeZDouble(bufferedDocs, number.doubleValue());
+      } else {
+        throw new AssertionError("Cannot get here");
+      }
+    }
+    byte[] newArrayCopy = bufferedDocs.toArrayCopy();
+
+    System.out.println("after writeField, filed=" + info.name + ",value=" + realValue + ",numStoredFieldsInDoc=" + numStoredFieldsInDoc + ",bufferedDocs add bytes=" + Arrays.toString(DebugUtil.getAddedBytes(oldArrayCopy, newArrayCopy)));
+
+  }
+
   @Override
   public void finishDocument() throws IOException {
+    // 每处理完一个文档，如果当前chunk中已经处理完的文档数numBufferedDocs等于numStoredFields的长度时，numStoredFields扩容一下
+    // numStoredFields的下标是numBufferedDocs, 对应的数组值是相应文档的storeField的个数
     if (numBufferedDocs == this.numStoredFields.length) {
       final int newLength = ArrayUtil.oversize(numBufferedDocs + 1, 4);
       this.numStoredFields = ArrayUtil.growExact(this.numStoredFields, newLength);
@@ -175,6 +265,89 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
     if (triggerFlush()) {
       flush();
     }
+  }
+
+  private boolean triggerFlush() {
+    return  // 内容编码后的字节不小于 600KB时
+            bufferedDocs.size() >= chunkSize || // chunks of at least chunkSize bytes
+            // 不小于1024个文档时
+            numBufferedDocs >= maxDocsPerChunk;
+  }
+
+  private void flush() throws IOException {
+    indexWriter.writeIndex(numBufferedDocs, fieldsStream.getFilePointer());
+
+    // transform end offsets into lengths
+    final int[] lengths = endOffsets;
+    for (int i = numBufferedDocs - 1; i > 0; --i) {
+      lengths[i] = endOffsets[i] - endOffsets[i - 1];
+      assert lengths[i] >= 0;
+    }
+    // storeField存储内容字节数 不小于 2* 600k时就要进行分块压缩
+    final boolean sliced = bufferedDocs.size() >= 2 * chunkSize;
+    writeHeader(docBase, numBufferedDocs, numStoredFields, lengths, sliced);
+
+    // compress stored fields to fieldsStream
+    //
+    // TODO: do we need to slice it since we already have the slices in the buffer? Perhaps
+    // we should use max-block-bits restriction on the buffer itself, then we won't have to check it here.
+    byte [] content = bufferedDocs.toArrayCopy();
+    bufferedDocs.reset();
+
+    if (sliced) {
+      // big chunk, slice it
+      for (int compressed = 0; compressed < content.length; compressed += chunkSize) {
+        long oldFp = fieldsStream.getFilePointer();
+        compressor.compress(content, compressed, Math.min(chunkSize, content.length - compressed), fieldsStream);
+        DebugUtil.debug("CompressingStoredFieldWriter", "fdt_flush_compressor_compress_big_chunk", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+
+      }
+    } else {
+      long oldFp = fieldsStream.getFilePointer();
+      compressor.compress(content, 0, content.length, fieldsStream);
+      DebugUtil.debug("CompressingStoredFieldWriter", "fdt_flush_compressor_compress", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+    }
+
+    // reset
+    docBase += numBufferedDocs;
+    numBufferedDocs = 0;
+    bufferedDocs.reset();
+  }
+
+  @Override
+  public void finish(FieldInfos fis, int numDocs) throws IOException {
+    if (numBufferedDocs > 0) {
+      numDirtyChunks++; // incomplete: we had to force this flush
+      final long expectedChunkDocs = Math.min(maxDocsPerChunk, (long) ((double) chunkSize / bufferedDocs.size() * numBufferedDocs));
+      numDirtyDocs += expectedChunkDocs - numBufferedDocs;
+      flush();
+    } else {
+      assert bufferedDocs.size() == 0;
+    }
+    if (docBase != numDocs) {
+      throw new RuntimeException("Wrote " + docBase + " docs, finish called with numDocs=" + numDocs);
+    }
+    indexWriter.finish(numDocs, fieldsStream.getFilePointer(), metaStream);
+    metaStream.writeVLong(numDirtyChunks);
+    metaStream.writeVLong(numDirtyDocs);
+    CodecUtil.writeFooter(metaStream);
+    long oldFp = fieldsStream.getFilePointer();
+    CodecUtil.writeFooter(fieldsStream);
+    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_finish_write_footer", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+    assert bufferedDocs.size() == 0;
+  }
+
+  // bulk merge is scary: its caused corruption bugs in the past.
+  // we try to be extra safe with this impl, but add an escape hatch to
+  // have a workaround for undiscovered bugs.
+  static final String BULK_MERGE_ENABLED_SYSPROP = CompressingStoredFieldsWriter.class.getName() + ".enableBulkMerge";
+  static final boolean BULK_MERGE_ENABLED;
+  static {
+    boolean v = true;
+    try {
+      v = Boolean.parseBoolean(System.getProperty(BULK_MERGE_ENABLED_SYSPROP, "true"));
+    } catch (SecurityException ignored) {}
+    BULK_MERGE_ENABLED = v;
   }
 
   private static void saveInts(int[] values, int length, DataOutput out) throws IOException {
@@ -208,122 +381,34 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
     }
   }
 
+
+
   private void writeHeader(int docBase, int numBufferedDocs, int[] numStoredFields, int[] lengths, boolean sliced) throws IOException {
     final int slicedBit = sliced ? 1 : 0;
     
     // save docBase and numBufferedDocs
     long oldFp = fieldsStream.getFilePointer();
     fieldsStream.writeVInt(docBase);
-    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_writeDocBase", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
     fieldsStream.writeVInt((numBufferedDocs) << 1 | slicedBit);
+    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_write_docBase_and_numBufferedDocs", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+
 
     // save numStoredFields
+    oldFp = fieldsStream.getFilePointer();
     saveInts(numStoredFields, numBufferedDocs, fieldsStream);
+    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_save_numStoredFields", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+
 
     // save lengths
+    oldFp = fieldsStream.getFilePointer();
     saveInts(lengths, numBufferedDocs, fieldsStream);
+    DebugUtil.debug("CompressingStoredFieldWriter", "fdt_save_lengths", oldFp, fieldsStream.getFilePointer(), fieldsStream.getWrittenBytes());
+
   }
 
-  private boolean triggerFlush() {
-    return bufferedDocs.size() >= chunkSize || // chunks of at least chunkSize bytes
-        numBufferedDocs >= maxDocsPerChunk;
-  }
 
-  private void flush() throws IOException {
-    indexWriter.writeIndex(numBufferedDocs, fieldsStream.getFilePointer());
 
-    // transform end offsets into lengths
-    final int[] lengths = endOffsets;
-    for (int i = numBufferedDocs - 1; i > 0; --i) {
-      lengths[i] = endOffsets[i] - endOffsets[i - 1];
-      assert lengths[i] >= 0;
-    }
-    final boolean sliced = bufferedDocs.size() >= 2 * chunkSize;
-    writeHeader(docBase, numBufferedDocs, numStoredFields, lengths, sliced);
 
-    // compress stored fields to fieldsStream
-    //
-    // TODO: do we need to slice it since we already have the slices in the buffer? Perhaps
-    // we should use max-block-bits restriction on the buffer itself, then we won't have to check it here.
-    byte [] content = bufferedDocs.toArrayCopy();
-    bufferedDocs.reset();
-
-    if (sliced) {
-      // big chunk, slice it
-      for (int compressed = 0; compressed < content.length; compressed += chunkSize) {
-        compressor.compress(content, compressed, Math.min(chunkSize, content.length - compressed), fieldsStream);
-      }
-    } else {
-      compressor.compress(content, 0, content.length, fieldsStream);
-    }
-
-    // reset
-    docBase += numBufferedDocs;
-    numBufferedDocs = 0;
-    bufferedDocs.reset();
-  }
-  
-  @Override
-  public void writeField(FieldInfo info, IndexableField field)
-      throws IOException {
-
-    ++numStoredFieldsInDoc;
-
-    int bits = 0;
-    final BytesRef bytes;
-    final String string;
-
-    Number number = field.numericValue();
-    if (number != null) {
-      if (number instanceof Byte || number instanceof Short || number instanceof Integer) {
-        bits = NUMERIC_INT;
-      } else if (number instanceof Long) {
-        bits = NUMERIC_LONG;
-      } else if (number instanceof Float) {
-        bits = NUMERIC_FLOAT;
-      } else if (number instanceof Double) {
-        bits = NUMERIC_DOUBLE;
-      } else {
-        throw new IllegalArgumentException("cannot store numeric type " + number.getClass());
-      }
-      string = null;
-      bytes = null;
-    } else {
-      bytes = field.binaryValue();
-      if (bytes != null) {
-        bits = BYTE_ARR;
-        string = null;
-      } else {
-        bits = STRING;
-        string = field.stringValue();
-        if (string == null) {
-          throw new IllegalArgumentException("field " + field.name() + " is stored but does not have binaryValue, stringValue nor numericValue");
-        }
-      }
-    }
-
-    final long infoAndBits = (((long) info.number) << TYPE_BITS) | bits;
-    bufferedDocs.writeVLong(infoAndBits);
-
-    if (bytes != null) {
-      bufferedDocs.writeVInt(bytes.length);
-      bufferedDocs.writeBytes(bytes.bytes, bytes.offset, bytes.length);
-    } else if (string != null) {
-      bufferedDocs.writeString(string);
-    } else {
-      if (number instanceof Byte || number instanceof Short || number instanceof Integer) {
-        bufferedDocs.writeZInt(number.intValue());
-      } else if (number instanceof Long) {
-        writeTLong(bufferedDocs, number.longValue());
-      } else if (number instanceof Float) {
-        writeZFloat(bufferedDocs, number.floatValue());
-      } else if (number instanceof Double) {
-        writeZDouble(bufferedDocs, number.doubleValue());
-      } else {
-        throw new AssertionError("Cannot get here");
-      }
-    }
-  }
 
   // -0 isn't compressed.
   static final int NEGATIVE_ZERO_FLOAT = Float.floatToIntBits(-0f);
@@ -473,39 +558,7 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
     }
   }
 
-  @Override
-  public void finish(FieldInfos fis, int numDocs) throws IOException {
-    if (numBufferedDocs > 0) {
-      numDirtyChunks++; // incomplete: we had to force this flush
-      final long expectedChunkDocs = Math.min(maxDocsPerChunk, (long) ((double) chunkSize / bufferedDocs.size() * numBufferedDocs));
-      numDirtyDocs += expectedChunkDocs - numBufferedDocs;
-      flush();
-    } else {
-      assert bufferedDocs.size() == 0;
-    }
-    if (docBase != numDocs) {
-      throw new RuntimeException("Wrote " + docBase + " docs, finish called with numDocs=" + numDocs);
-    }
-    indexWriter.finish(numDocs, fieldsStream.getFilePointer(), metaStream);
-    metaStream.writeVLong(numDirtyChunks);
-    metaStream.writeVLong(numDirtyDocs);
-    CodecUtil.writeFooter(metaStream);
-    CodecUtil.writeFooter(fieldsStream);
-    assert bufferedDocs.size() == 0;
-  }
-  
-  // bulk merge is scary: its caused corruption bugs in the past.
-  // we try to be extra safe with this impl, but add an escape hatch to
-  // have a workaround for undiscovered bugs.
-  static final String BULK_MERGE_ENABLED_SYSPROP = CompressingStoredFieldsWriter.class.getName() + ".enableBulkMerge";
-  static final boolean BULK_MERGE_ENABLED;
-  static {
-    boolean v = true;
-    try {
-      v = Boolean.parseBoolean(System.getProperty(BULK_MERGE_ENABLED_SYSPROP, "true"));
-    } catch (SecurityException ignored) {}
-    BULK_MERGE_ENABLED = v;
-  }
+
 
   @Override
   public int merge(MergeState mergeState) throws IOException {

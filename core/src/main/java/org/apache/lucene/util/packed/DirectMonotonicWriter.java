@@ -67,45 +67,7 @@ public final class DirectMonotonicWriter {
     this.baseDataPointer = dataOut.getFilePointer();
   }
 
-  private void flush() throws IOException {
-    assert bufferSize != 0;
 
-    final float avgInc = (float) ((double) (buffer[bufferSize-1] - buffer[0]) / Math.max(1, bufferSize - 1));
-    for (int i = 0; i < bufferSize; ++i) {
-      final long expected = (long) (avgInc * (long) i);
-      buffer[i] -= expected;
-    }
-
-    long min = buffer[0];
-    for (int i = 1; i < bufferSize; ++i) {
-      min = Math.min(buffer[i], min);
-    }
-
-    long maxDelta = 0;
-    for (int i = 0; i < bufferSize; ++i) {
-      buffer[i] -= min;
-      // use | will change nothing when it comes to computing required bits
-      // but has the benefit of working fine with negative values too
-      // (in case of overflow)
-      maxDelta |= buffer[i];
-    }
-
-    meta.writeLong(min);
-    meta.writeInt(Float.floatToIntBits(avgInc));
-    meta.writeLong(data.getFilePointer() - baseDataPointer);
-    if (maxDelta == 0) {
-      meta.writeByte((byte) 0);
-    } else {
-      final int bitsRequired = DirectWriter.unsignedBitsRequired(maxDelta);
-      DirectWriter writer = DirectWriter.getInstance(data, bufferSize, bitsRequired);
-      for (int i = 0; i < bufferSize; ++i) {
-        writer.add(buffer[i]);
-      }
-      writer.finish();
-      meta.writeByte((byte) bitsRequired);
-    }
-    bufferSize = 0;
-  }
 
   long previous = Long.MIN_VALUE;
 
@@ -136,6 +98,52 @@ public final class DirectMonotonicWriter {
       flush();
     }
     finished = true;
+  }
+
+  private void flush() throws IOException {
+    assert bufferSize != 0;
+    // 假设当前的单调递增数据是 1,2,5,7, 斜率avgInc = (7-1)/3 = 2
+    final float avgInc = (float) ((double) (buffer[bufferSize-1] - buffer[0]) / Math.max(1, bufferSize - 1));
+    // 将原始数据1,2,5,7想象成二维坐标轴上的点,即(0,1) ,(1,2) ,(2,5) ,(3,7)
+    // 另外还有一条斜率为2的穿过原点的直线,它上面有四个点(0,0), (1,2), (2,4), (3,6)
+    // buffer[i]表示原始折线y值与斜率折线y值的差值, buffer[i]可正可负
+    for (int i = 0; i < bufferSize; ++i) {
+      final long expected = (long) (avgInc * (long) i);
+      buffer[i] -= expected;
+    }
+
+    // min表示最小的差值(偏移量)
+    long min = buffer[0];
+    for (int i = 1; i < bufferSize; ++i) {
+      min = Math.min(buffer[i], min);
+    }
+
+    long maxDelta = 0;
+    // buffer[i] 表示当前差值(偏移量)与最小差值(偏移量)之前的差距
+    for (int i = 0; i < bufferSize; ++i) {
+      buffer[i] -= min;
+      // use | will change nothing when it comes to computing required bits
+      // but has the benefit of working fine with negative values too
+      // (in case of overflow)
+      // 记录最大差距
+      maxDelta |= buffer[i];
+    }
+
+    meta.writeLong(min);
+    meta.writeInt(Float.floatToIntBits(avgInc));
+    meta.writeLong(data.getFilePointer() - baseDataPointer);
+    if (maxDelta == 0) {
+      meta.writeByte((byte) 0);
+    } else {
+      final int bitsRequired = DirectWriter.unsignedBitsRequired(maxDelta);
+      DirectWriter writer = DirectWriter.getInstance(data, bufferSize, bitsRequired);
+      for (int i = 0; i < bufferSize; ++i) {
+        writer.add(buffer[i]);
+      }
+      writer.finish();
+      meta.writeByte((byte) bitsRequired);
+    }
+    bufferSize = 0;
   }
 
   /** Returns an instance suitable for encoding {@code numValues} into monotonic

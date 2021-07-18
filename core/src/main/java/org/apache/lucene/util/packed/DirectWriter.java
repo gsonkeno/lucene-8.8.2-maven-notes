@@ -61,8 +61,11 @@ public final class DirectWriter {
     this.numValues = numValues;
     this.bitsPerValue = bitsPerValue;
     encoder = BulkOperation.of(PackedInts.Format.PACKED, bitsPerValue);
+    // 1024 个字节的内存，够缓存多少个完整的块。
     iterations = encoder.computeIterations((int) Math.min(numValues, Integer.MAX_VALUE), PackedInts.DEFAULT_BUFFER_SIZE);
+    // 这里举个例子, 有5个long型数字,最大的数字也只需要2个bit就能表示, byteBlockCount=1，表达一个外部输入long数字需要1个字节块(最小单位就是1个字节)
     nextBlocks = new byte[iterations * encoder.byteBlockCount()];
+    // byteValueCount表示byteBlockCount()个字节能表达多少个外部输入long数字，在此例子中, 一个外部输入long数字需要2个bit，那么1个字节可以表达4个外部输入数字
     nextValues = new long[iterations * encoder.byteValueCount()];
   }
   

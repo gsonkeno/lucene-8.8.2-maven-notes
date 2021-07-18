@@ -14,4 +14,14 @@ public class DebugUtil {
             System.out.println("--------------");
         }
     }
+
+    public static byte[] getAddedBytes(byte[] oldBytes, byte[] newBytes){
+        if (oldBytes == null){
+            return newBytes;
+        }
+
+        int oldLength = oldBytes.length;
+        int newLength  = newBytes.length;
+        return Arrays.copyOfRange(newBytes, oldLength, newLength);
+    }
 }

@@ -24,7 +24,10 @@ package org.apache.lucene.util.packed;
 class BulkOperationPacked extends BulkOperation {
 
   private final int bitsPerValue;
+  // 表示如果使用long型数据编码，需要多个long block; 记住, 一个 long block 8个字节，即64个bit
   private final int longBlockCount;
+  // 与longBlockCount相呼应，longBlcokCount*64 个字节，每个value使用bitsPerValue个bit编码，所需要的value个数
+  // 存在公式 longBlockCount * bitsPerValue = longBlockCount * 64
   private final int longValueCount;
   private final int byteBlockCount;
   private final int byteValueCount;

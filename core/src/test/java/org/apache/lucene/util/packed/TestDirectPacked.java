@@ -17,6 +17,9 @@
 package org.apache.lucene.util.packed;
 
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Random;
 
 import org.apache.lucene.store.ByteArrayDataInput;
@@ -29,7 +32,25 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.TestUtil;
 
 public class TestDirectPacked extends LuceneTestCase {
-  
+
+  public void test() throws IOException {
+    Path path = Paths.get(".");
+    System.out.println(path.toAbsolutePath());
+    Directory dir = newFSDirectory(path);
+    int bitsPerValue = DirectWriter.bitsRequired(20);
+    IndexOutput output = dir.createOutput("foo", IOContext.DEFAULT);
+    DirectWriter writer = DirectWriter.getInstance(output, 6, bitsPerValue);
+    writer.add(1);
+    writer.add(0);
+    writer.add(2);
+    writer.add(1);
+    writer.add(2);
+    writer.add(1);
+    writer.finish();
+    output.close();
+    dir.close();
+
+  }
   /** simple encode/decode */
   public void testSimple() throws Exception {
     Directory dir = newDirectory();

@@ -249,6 +249,7 @@ public final class ByteBuffersDataOutput extends DataOutput implements Accountab
   }
 
   /**
+   * 连续的
    * Return a contiguous array with the current content written to the output. The returned
    * array is always a copy (can be mutated).
    *
