@@ -52,9 +52,12 @@ public class TestPackedInts extends LuceneTestCase {
     for (int i = 0; i < iters; ++i) {
       final int valueCount = RandomNumbers.randomIntBetween(random(), 1, Integer.MAX_VALUE);
       for (PackedInts.Format format : PackedInts.Format.values()) {
+        // bpv bitsPerValue 每个数字占用的最大Bit位个数
         for (int bpv = 1; bpv <= 64; ++bpv) {
+          // 计算需要多少个byte来表达valueCount这么多个源数据，每个源数据需要bpv个bit位来表示
           final long byteCount = format.byteCount(PackedInts.VERSION_CURRENT, valueCount, bpv);
           String msg = "format=" + format + ", byteCount=" + byteCount + ", valueCount=" + valueCount + ", bpv=" + bpv;
+          // valueCount * bpv是源数据所需要的总共的bit位；每个byte有8个bit位，所以byteCount * 8 会稍微大一些，因为可能最后一个Byte未全部使用
           assertTrue(msg, byteCount * 8 >= (long) valueCount * bpv);
           if (format == PackedInts.Format.PACKED) {
             assertTrue(msg, (byteCount - 1) * 8 < (long) valueCount * bpv);
@@ -65,12 +68,18 @@ public class TestPackedInts extends LuceneTestCase {
   }
 
   public void testBitsRequired() {
+    // 类比推理, 2^1-1=1需要1个Bit位, 2^2-1=3需要2个Bit位，那么2^61-1肯定需要61个Bit位的啦
     assertEquals(61, PackedInts.bitsRequired((long)Math.pow(2, 61)-1));
-    assertEquals(61, PackedInts.bitsRequired(0x1FFFFFFFFFFFFFFFL));
-    assertEquals(62, PackedInts.bitsRequired(0x3FFFFFFFFFFFFFFFL));
-    assertEquals(63, PackedInts.bitsRequired(0x7FFFFFFFFFFFFFFFL));
+    assertEquals(61, PackedInts.bitsRequired(0x1F_FF_FF_FF_FF_FF_FF_FFL));
+    assertEquals(62, PackedInts.bitsRequired(0x3F_FF_FF_FF_FF_FF_FF_FFL));
+    assertEquals(63, PackedInts.bitsRequired(0x7F_FF_FF_FF_FF_FF_FF_FFL));
+    // -1用补码表示全部位都是1，所以需要64个Bit表示
     assertEquals(64, PackedInts.unsignedBitsRequired(-1));
+    // Long最小值最高位是1，所以需要64个Bit表示
     assertEquals(64, PackedInts.unsignedBitsRequired(Long.MIN_VALUE));
+    // 负数最高位都是1，所以都需要64个Bit表示
+    assertEquals(64, PackedInts.unsignedBitsRequired(-7L));
+    // 实现中要求返回值>=1
     assertEquals(1, PackedInts.bitsRequired(0));
   }
 
@@ -83,6 +92,7 @@ public class TestPackedInts extends LuceneTestCase {
             255, PackedInts.maxValue(8));
     assertEquals("63 bit -> max == Long.MAX_VALUE",
             Long.MAX_VALUE, PackedInts.maxValue(63));
+    // 63个Bit或者64个Bit表示的都是Long的最大值
     assertEquals("64 bit -> max == Long.MAX_VALUE (same as for 63 bit)", 
             Long.MAX_VALUE, PackedInts.maxValue(64));
   }
@@ -124,6 +134,7 @@ public class TestPackedInts extends LuceneTestCase {
         out.close();
 
         // ensure that finish() added the (valueCount-actualValueCount) missing values
+        // 补全了
         final long bytes = w.getFormat().byteCount(PackedInts.VERSION_CURRENT, valueCount, w.bitsPerValue);
         assertEquals(bytes, fp - startFp);
 
@@ -187,6 +198,7 @@ public class TestPackedInts extends LuceneTestCase {
         }
         
         { // test direct reader get
+          // 随机读取
           IndexInput in = d.openInput("out.bin", newIOContext(random()));
           PackedInts.Reader intsEnum = PackedInts.getDirectReader(in);
           for (int i = 0; i < valueCount; i++) {

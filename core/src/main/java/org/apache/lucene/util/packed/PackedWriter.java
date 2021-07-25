@@ -42,6 +42,8 @@ final class PackedWriter extends PackedInts.Writer {
     this.format = format;
     encoder = BulkOperation.of(format, bitsPerValue);
     iterations = encoder.computeIterations(valueCount, mem);
+    // 以一次flush为基准，定义编码后需要的byte个数(  iterations * encoder.byteBlockCount()  )
+    // 以及能表达的源数据个数(  iterations * encoder.byteValueCount()  )
     nextBlocks = new byte[iterations * encoder.byteBlockCount()];
     nextValues = new long[iterations * encoder.byteValueCount()];
     off = 0;

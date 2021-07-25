@@ -1,0 +1,60 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+interface PackedInts.Decoder
+interface PackedInts.Encoder
+abstract  PackedInts.Writer
+abstract  PackedInts.Reader
+class PackedWriter
+abstract class BulkOperation
+class BulkOperationPacked
+class BulkOperationPacked1
+class BulkOperationPacked2
+class BulkOperationPacked23
+class BulkOperationPackedSingleBlock
+PackedInts.Decoder<|-- BulkOperation
+PackedInts.Encoder<|-- BulkOperation
+
+PackedInts.Writer<|-- PackedWriter
+
+BulkOperation<|-- BulkOperationPacked
+BulkOperationPacked<|-- BulkOperationPacked1
+BulkOperationPacked<|-- BulkOperationPacked2
+BulkOperationPacked<|-- BulkOperationPacked23
+BulkOperationPacked<|-- BulkOperationPackedSingleBlock
+
+interface PackedInts.Decoder{
++ int longBlockCount()
++ int longValueCount()
++ int byteBlockCount()
++ int byteValueCount()
++ decode(long[] blocks, int blocksOffset, long[] values, int valuesOffset, int iterations)
++ decode(byte[] blocks, int blocksOffset, long[] values, int valuesOffset, int iterations)
++ decode(long[] blocks, int blocksOffset, int[] values, int valuesOffset, int iterations)
++ decode(byte[] blocks, int blocksOffset, int[] values, int valuesOffset, int iterations)
+}
+
+interface PackedInts.Encoder{
++ int longBlockCount()
++ int longValueCount()
++ int byteBlockCount()
++ int byteValueCount()
++ encode(long[] values, int valuesOffset, long[] blocks, int blocksOffset, int iterations)
++ encode(long[] values, int valuesOffset, byte[] blocks, int blocksOffset, int iterations)
++ encode(int[] values, int valuesOffset, long[] blocks, int blocksOffset, int iterations)
++ encode(int[] values, int valuesOffset, byte[] blocks, int blocksOffset, int iterations)
+}
+
+class BulkOperation{
++ int computeIterations(int valueCount, int ramBudget)
++ BulkOperation of(PackedInts.Format format, int bitsPerValue)
+}
+note right of BulkOperation::computeIterations
+  计算预算内存ramBudget下编码valueCount个源数据需要的迭代批次
+end note
+
+class BulkOperationPacked{
+
+}
+note right: 实现了Encoder,Decoder的方法
+@enduml

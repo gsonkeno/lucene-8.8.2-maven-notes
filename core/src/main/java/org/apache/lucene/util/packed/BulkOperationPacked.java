@@ -38,10 +38,16 @@ class BulkOperationPacked extends BulkOperation {
     this.bitsPerValue = bitsPerValue;
     assert bitsPerValue > 0 && bitsPerValue <= 64;
     int blocks = bitsPerValue;
+    // 假设一个long需要bitsPerValue=12个bit位表示
     while ((blocks & 1) == 0) {
       blocks >>>= 1;
     }
+    // bitsPerValue=12时,longBlockCount = 3
     this.longBlockCount = blocks;
+    // 因为bitsPerValue是longBlock的2^n次方倍数, n <=6，所以正好能够整除
+    // bitsPerValue=12时,longValueCount=16;
+    // 表示16个long批操作时需要的Bit数 = 16(即longValueCount) * 12(即bitsPerValue) = 192个Bit位，
+    // 正好等于 3(即longBlockCount)个基本类型long(需要64个bit位)所需要的bit位 = 3 * 64 = 192个Bit位
     this.longValueCount = 64 * longBlockCount / bitsPerValue;
     int byteBlockCount = 8 * longBlockCount;
     int byteValueCount = longValueCount;

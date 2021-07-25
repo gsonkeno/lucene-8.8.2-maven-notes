@@ -86,7 +86,7 @@ public class PackedInts {
    */
   public enum Format {
     /**
-     * Compact format, all bits are written contiguously.
+     * Compact 紧凑 format, all bits are written contiguously 连续.
      */
     PACKED(0) {
 
@@ -98,7 +98,7 @@ public class PackedInts {
     },
 
     /**
-     * A format that may insert padding bits to improve encoding and decoding
+     * A format that may insert padding 填充的 bits to improve encoding and decoding
      * speed. Since this format doesn't support all possible bits per value, you
      * should never use it directly, but rather use
      * {@link PackedInts#fastestFormatAndBits(int, int, float)} to find the
@@ -108,7 +108,10 @@ public class PackedInts {
 
       @Override
       public int longCount(int packedIntsVersion, int valueCount, int bitsPerValue) {
+        // valuesPerBlock表示一个Block(long,64位)能装载多少个源数据,这里使用除法，表示忽略余数
         final int valuesPerBlock = 64 / bitsPerValue;
+        // 总共valueCount个源数据，而每个Long能装载valuesPerBlock个源数据，除法向上取整表示
+        // 总共需要多少个Block(每个Block就是一个Long)才能装载valueCount个源数据
         return (int) Math.ceil((double) valueCount / valuesPerBlock);
       }
 
@@ -158,7 +161,7 @@ public class PackedInts {
      */
     public long byteCount(int packedIntsVersion, int valueCount, int bitsPerValue) {
       assert bitsPerValue >= 0 && bitsPerValue <= 64 : bitsPerValue;
-      // assume long-aligned
+      // assume long-aligned   以long对齐
       return 8L * longCount(packedIntsVersion, valueCount, bitsPerValue);
     }
 
@@ -237,8 +240,10 @@ public class PackedInts {
       valueCount = Integer.MAX_VALUE;
     }
 
+    // acceptableOverheadRatio保证在0到7之间
     acceptableOverheadRatio = Math.max(COMPACT, acceptableOverheadRatio);
     acceptableOverheadRatio = Math.min(FASTEST, acceptableOverheadRatio);
+    // 每个源数据的负载开销
     float acceptableOverheadPerValue = acceptableOverheadRatio * bitsPerValue; // in bits
 
     int maxBitsPerValue = bitsPerValue + (int) acceptableOverheadPerValue;
@@ -304,6 +309,11 @@ public class PackedInts {
     /**
      * The number of values that can be stored in {@link #byteBlockCount()} byte
      * blocks.
+     * 表示byteBlockCount()个byte块能表示多少个源数据，比如源数据需要7个Bit位，那么7个byte block块共56个Bit位
+     * 能表示8个源数据
+     *
+     * bitsPerValue = 7 时，byteBlockCount()返回7， byteValuesCount()返回8
+     * 这两个方法是息息相关的，不能孤立来看
      */
     int byteValueCount();
 
@@ -379,6 +389,10 @@ public class PackedInts {
     int longValueCount();
 
     /**
+     * 表示一个源数据需要多个byte表示，
+     * 比如，源数据24位Bit，则需要3个byte表示
+     * 又比如， 源数据50位Bit， 50Bit与8Bit的最小公倍数为200， 200/8=25个Byte, 25个Byte可以表示4个源数据
+     * 即 bitPerValue * byteBlockCount = 8 * byteValueCount
      * The minimum number of byte blocks to encode in a single iteration, when
      * using byte encoding.
      */
@@ -1053,7 +1067,7 @@ public class PackedInts {
    * @param out          the data output
    * @param valueCount   the number of values
    * @param bitsPerValue the number of bits per value
-   * @param acceptableOverheadRatio an acceptable overhead ratio per value
+   * @param acceptableOverheadRatio an acceptable overhead ratio per value 可接受的开销比例
    * @return             a Writer
    * @throws IOException If there is a low-level I/O error
    * @lucene.internal

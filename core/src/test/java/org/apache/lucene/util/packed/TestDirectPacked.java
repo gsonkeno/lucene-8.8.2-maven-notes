@@ -37,7 +37,7 @@ public class TestDirectPacked extends LuceneTestCase {
     Path path = Paths.get(".");
     System.out.println(path.toAbsolutePath());
     Directory dir = newFSDirectory(path);
-    int bitsPerValue = DirectWriter.bitsRequired(20);
+    int bitsPerValue = DirectWriter.bitsRequired(257);
     IndexOutput output = dir.createOutput("foo", IOContext.DEFAULT);
     DirectWriter writer = DirectWriter.getInstance(output, 6, bitsPerValue);
     writer.add(1);

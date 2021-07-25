@@ -77,4 +77,34 @@ public class BitsTest {
         System.out.println(i);
         Assert.assertEquals(i, -1);
     }
+
+    @Test
+    public void test3(){
+        int b = 64;
+        System.out.println(b /9);
+    }
+
+    /**
+     * -1表示
+     */
+    @Test
+    public void testExpressNegative1(){
+        // 1为源码, 反码 1111111.....0
+        // 补码为反码
+        long a = 0xFF_FF_FF_FF_FF_FF_FF_FFL;
+        System.out.println(a);
+
+        System.out.println(Long.numberOfLeadingZeros(0L));
+
+        float f = 1.8f;
+        //向下取整
+        System.out.println((int)f);
+
+        double d = 1.7d;
+        // 向下取整
+        System.out.println((int) d);
+
+    }
+
+
 }

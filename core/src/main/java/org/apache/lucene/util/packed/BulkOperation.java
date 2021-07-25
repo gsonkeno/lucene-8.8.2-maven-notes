@@ -151,10 +151,17 @@ abstract class BulkOperation implements PackedInts.Decoder, PackedInts.Encoder {
    * For every number of bits per value, there is a minimum number of
    * blocks (b) / values (v) you need to write in order to reach the next block
    * boundary:
-   *  - 16 bits per value -&gt; b=2, v=1
-   *  - 24 bits per value -&gt; b=3, v=1
-   *  - 50 bits per value -&gt; b=25, v=4
-   *  - 63 bits per value -&gt; b=63, v=8
+   * <ul>
+   *  <li> 16 bits per value -&gt; b=2, v=1, 单个源数据需要16个Bit表示,则2个byte块可表示1个源数据  </li>
+   *
+   *  <li> 24 bits per value -&gt; b=3, v=1, 单个源数据需要24个Bit表示,则3个byte块可表示1个源数据  </li>
+   *  <li>50 bits per value -&gt; b=25, v=4, 单个源数据需要50个Bit表示,则25个byte块可表示4个源数据</li>
+   *  <li>63 bits per value -&gt; b=63, v=8, 单个源数据需要63个Bit表示,则63个byte块可表示8个源数据, 8*63=63*8</li>
+   *  <li>
+   *      总之存在byteBlockCount * 8 = byteValuesCount * bitsPerValue = 源数据表达需要的Bit总数
+   *  </li>
+   *
+   *  </ul>
    *  - ...
    *
    * A bulk read consists in copying <code>iterations*v</code> values that are
@@ -166,12 +173,16 @@ abstract class BulkOperation implements PackedInts.Decoder, PackedInts.Encoder {
    * <code>ramBudget / (b + 8v)</code> (since a long is 8 bytes).
    */
   public final int computeIterations(int valueCount, int ramBudget) {
+    // byteValuesCount表示可表达的源数据个数，这里假设源数据是long型，每个long->8byte
+    // byteBlockCount表示源数据编码后需要多少个byte block来表示
+    // 8 * byteValueCount() 表示源数据本身需要多少个byte来表示
     final int iterations = ramBudget / (byteBlockCount() + 8 * byteValueCount());
     if (iterations == 0) {
       // at least 1
       return 1;
     } else if ((iterations - 1) * byteValueCount() >= valueCount) {
       // don't allocate for more than the size of the reader
+      // 当valueCount源数据个数太少，根本用不了1024byte时, 计算所需要的iterations迭代次数，一个迭代批里就能表达byteValueCount个源数据
       return (int) Math.ceil((double) valueCount / byteValueCount());
     } else {
       return iterations;
