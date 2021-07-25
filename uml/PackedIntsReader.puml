@@ -1,0 +1,33 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+abstract class PackedInts.Reader
+abstract class PackedInts.Mutable
+class PackedInts.MutableImpl
+class Packed64SingleBlock.Packed64SingleBlock1
+class Packed64SingleBlock.Packed64SingleBlock2
+class Packed64SingleBlock.Packed64SingleBlock21
+class Packed64SingleBlock.Packed64SingleBlock32
+class Packed64SingleBlock
+
+class Direct8
+class Direct64
+class Packed8ThreeBlocks
+class Packed16ThreeBlocks
+class Packed64
+
+
+PackedInts.Reader <|-- PackedInts.Mutable
+PackedInts.Mutable <|-- PackedInts.MutableImpl
+PackedInts.MutableImpl <|-- Packed64SingleBlock
+Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock1
+Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock2
+Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock21
+Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock32
+PackedInts.MutableImpl <|-- Direct8
+PackedInts.MutableImpl <|-- Direct64
+PackedInts.MutableImpl <|-- Packed8ThreeBlocks
+PackedInts.MutableImpl <|-- Packed16ThreeBlocks
+PackedInts.MutableImpl <|-- Packed64
+
+@enduml

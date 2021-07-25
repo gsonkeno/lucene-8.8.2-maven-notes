@@ -106,5 +106,12 @@ public class BitsTest {
 
     }
 
+    @Test
+    public void testExpressLong(){
+        long a = Long.MAX_VALUE;
+        System.out.println(Long.toBinaryString(a));
+        System.out.println(Long.toHexString(a));
+    }
+
 
 }

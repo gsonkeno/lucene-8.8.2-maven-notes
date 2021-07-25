@@ -257,10 +257,10 @@ abstract class Packed64SingleBlock extends PackedInts.MutableImpl {
 
     @Override
     public long get(int index) {
-      final int o = index >>> 6;
-      final int b = index & 63;
-      final int shift = b << 0;
-      return (blocks[o] >>> shift) & 1L;
+      final int o = index >>> 6; // 相当于除以64, index0-index63都要从block[0]第一个long中解析出来
+      final int b = index & 63; //  相当于除以64，取余数，余数为b
+      final int shift = b << 0; //  换个变量名称而已
+      return (blocks[o] >>> shift) & 1L; // 就是取余数b对应的long中的那一位
     }
 
     @Override
