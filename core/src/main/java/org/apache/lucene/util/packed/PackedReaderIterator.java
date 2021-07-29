@@ -42,6 +42,7 @@ final class PackedReaderIterator extends PackedInts.ReaderIteratorImpl {
     iterations = bulkOperation.computeIterations(valueCount, mem);
     assert valueCount == 0 || iterations > 0;
     nextBlocks = new byte[iterations * bulkOperation.byteBlockCount()];
+    // 大概率iterations * bulkOperation.byteValueCount() == valueCount
     nextValues = new LongsRef(new long[iterations * bulkOperation.byteValueCount()], 0, 0);
     nextValues.offset = nextValues.longs.length;
     position = -1;

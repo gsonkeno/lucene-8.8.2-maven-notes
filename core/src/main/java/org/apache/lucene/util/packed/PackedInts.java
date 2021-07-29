@@ -91,6 +91,7 @@ public class PackedInts {
     PACKED(0) {
 
       @Override
+      // 源数据需要valueCount * bitsPerValue个Bit位来表达，那么需要多少个编码后的byte装载呢
       public long byteCount(int packedIntsVersion, int valueCount, int bitsPerValue) {
         return (long) Math.ceil((double) valueCount * bitsPerValue / 8);      
       }
@@ -471,6 +472,12 @@ public class PackedInts {
      * Bulk get: read at least one and at most <code>len</code> longs starting
      * from <code>index</code> into <code>arr[off:off+len]</code> and return
      * the actual number of values that have been read.
+     * 批量读
+     * 从Reader的内部数组的index位置开始批量读，最多读len个源数据出来，装载到arr数组中,
+     * 从arr的off指针位置开始装载，理想情况下可以装载len个元素(因为从Reader内部数组的index位置开始读，
+     * 可能剩下的源数据个数不足len个了)
+     *
+     * 最终返回读取到的源数据个数
      */
     public int get(int index, long[] arr, int off, int len) {
       assert len > 0 : "len must be > 0 (got " + len + ")";
@@ -566,6 +573,11 @@ public class PackedInts {
      * at <code>off</code> in <code>arr</code> into this mutable, starting at
      * <code>index</code>. Returns the actual number of values that have been
      * set.
+     * 其实说的很明白，翻译一下
+     * 从arr数组的off指针位置(从0计数)开始，选取len(大于0)个元素，写到Mutable实现类
+     * 内部数组中，写到内部数组的什么位置呢？
+     *
+     * 写到内部数组的index位置，直到写满输入的源数据
      */
     public int set(int index, long[] arr, int off, int len) {
       assert len > 0 : "len must be > 0 (got " + len + ")";
@@ -685,6 +697,8 @@ public class PackedInts {
     public int get(int index, long[] arr, int off, int len) {
       assert len > 0 : "len must be > 0 (got " + len + ")";
       assert index >= 0 && index < valueCount;
+      // 比如总共就valueCount=5个元素，index=3, len = 4,从index=3开始只剩下两个源数据了
+      // 这里要取出len个源数据，显然是做不到的,所以这里两者取最小值
       len = Math.min(len, valueCount - index);
       Arrays.fill(arr, off, off + len, 0);
       return len;

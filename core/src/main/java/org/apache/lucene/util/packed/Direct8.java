@@ -78,6 +78,7 @@ final class Direct8 extends PackedInts.MutableImpl {
 
     final int gets = Math.min(valueCount - index, len);
     for (int i = index, o = off, end = index + gets; i < end; ++i, ++o) {
+      // & 0xFF就可以还原 源数据了
       arr[o] = values[i] & 0xFFL;
     }
     return gets;
@@ -88,7 +89,10 @@ final class Direct8 extends PackedInts.MutableImpl {
     assert len > 0 : "len must be > 0 (got " + len + ")";
     assert index >= 0 && index < valueCount;
     assert off + len <= arr.length;
-
+    // 该类bitsPerValue=8 表示一个源数据,即arr中的任意一个long元素，都能用8bit表示
+    // 索引内部数组values的每个元素byte都能表达一个源数据
+    // 从index开始，只能表达剩下valueCount -index个源数据
+    // 而外部输入要求表达len个源数据，两者取小，只能表达这么多的源数据了
     final int sets = Math.min(valueCount - index, len);
     for (int i = index, o = off, end = index + sets; i < end; ++i, ++o) {
       values[i] = (byte) arr[o];

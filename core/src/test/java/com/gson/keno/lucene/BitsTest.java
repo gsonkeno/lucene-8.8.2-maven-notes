@@ -111,6 +111,13 @@ public class BitsTest {
         long a = Long.MAX_VALUE;
         System.out.println(Long.toBinaryString(a));
         System.out.println(Long.toHexString(a));
+
+        long b = 0x00_00_00_00_00_00_00_ff;
+        // 最后一个字节全是1，即255
+        System.out.println(b);
+        // 强转为byte后, 11111111 表示负数， -1
+        byte c = (byte)b;
+        System.out.println(c);
     }
 
 

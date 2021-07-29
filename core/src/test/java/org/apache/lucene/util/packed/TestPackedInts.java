@@ -243,13 +243,13 @@ public class TestPackedInts extends LuceneTestCase {
           }
           assertEquals(msg, byteCount, in.getFilePointer());
 
-          // test direct reader
+          // test direct reader 直接读指定位置
           in.seek(0L);
           final PackedInts.Reader directReader = PackedInts.getDirectReaderNoHeader(in, format, version, valueCount, bpv);
           directReader.get(valueCount - 1);
           assertEquals(msg, byteCount, in.getFilePointer());
 
-          // test reader
+          // test reader 一下子把所有数据读出来
           in.seek(0L);
           PackedInts.getReaderNoHeader(in, format, version, valueCount, bpv);
           assertEquals(msg, byteCount, in.getFilePointer());
@@ -369,6 +369,12 @@ public class TestPackedInts extends LuceneTestCase {
     assertListEquality(packedInts);
   }
 
+  /**
+   * 获取各种Reader实现，每种处理的bitsPerValue不一样
+   * @param valueCount
+   * @param bitsPerValue
+   * @return
+   */
   private static List<PackedInts.Mutable> createPackedInts(
           int valueCount, int bitsPerValue) {
     List<PackedInts.Mutable> packedInts = new ArrayList<>();
@@ -462,11 +468,15 @@ public class TestPackedInts extends LuceneTestCase {
   }
 
   public void testSecondaryBlockChange() {
+    // 用long(64位)装载编码后数据，源数据共有26个，每个需要5Bit表示
     PackedInts.Mutable mutable = new Packed64(26, 5);
+    // 设置第24个源数据(从0记起)值为31
     mutable.set(24, 31);
     assertEquals("The value #24 should be correct", 31, mutable.get(24));
+    // 设置第4个源数据(从0记起)值为16
     mutable.set(4, 16);
     assertEquals("The value #24 should remain unchanged", 31, mutable.get(24));
+    assertEquals("The value #4 should be correct", 16, mutable.get(4));
   }
 
   /*
@@ -475,7 +485,7 @@ public class TestPackedInts extends LuceneTestCase {
     
     NOTE: this test allocates 256 MB
    */
-  @Ignore("See LUCENE-4488")
+  //@Ignore("See LUCENE-4488")
   public void testIntOverflow() {
     int INDEX = (int)Math.pow(2, 30)+1;
     int BITS = 2;
@@ -541,13 +551,16 @@ public class TestPackedInts extends LuceneTestCase {
 
   public void testFill() {
     final int valueCount = 1111;
+    // nextInt不包括参数边界呢
     final int from = random().nextInt(valueCount + 1);
+    // to <= valueCount
     final int to = from + random().nextInt(valueCount + 1 - from);
     for (int bpv = 1; bpv <= 64; ++bpv) {
       final long val = TestUtil.nextLong(random(), 0, PackedInts.maxValue(bpv));
       List<PackedInts.Mutable> packedInts = createPackedInts(valueCount, bpv);
       for (PackedInts.Mutable ints : packedInts) {
         String msg = ints.getClass().getSimpleName() + " bpv=" + bpv + ", from=" + from + ", to=" + to + ", val=" + val;
+        // form-to索引位置填充的值是val，其他索引位置填充的值是1
         ints.fill(0, ints.size(), 1);
         ints.fill(from, to, val);
         for (int i = 0; i < ints.size(); ++i) {
@@ -564,10 +577,12 @@ public class TestPackedInts extends LuceneTestCase {
   public void testPackedIntsNull() {
     // must be > 10 for the bulk reads below
     int size = TestUtil.nextInt(random(), 11, 256);
+    // valueCount源数据个数就是size
     Reader packedInts = new PackedInts.NullReader(size);
     assertEquals(0, packedInts.get(TestUtil.nextInt(random(), 0, size - 1)));
     long[] arr = new long[size + 10];
     int r;
+    // arr数组元素全部填充为1
     Arrays.fill(arr, 1);
     r = packedInts.get(0, arr, 0, size - 1);
     assertEquals(size - 1, r);
@@ -575,6 +590,7 @@ public class TestPackedInts extends LuceneTestCase {
       assertEquals(0, arr[r]);
     }
     Arrays.fill(arr, 1);
+    // 这里len设置为size + 10也是无效的，从index=10取，只能取到(size-10)个源数据了
     r = packedInts.get(10, arr, 0, size + 10);
     assertEquals(size - 10, r);
     for (int i = 0; i < size - 10; i++) {
@@ -583,6 +599,9 @@ public class TestPackedInts extends LuceneTestCase {
 
   }
 
+  /**
+   * 批量读
+   */
   public void testBulkGet() {
     final int valueCount = 1111;
     final int index = random().nextInt(valueCount);
@@ -603,7 +622,9 @@ public class TestPackedInts extends LuceneTestCase {
             + ", index=" + index + ", len=" + len + ", off=" + off;
         final int gets = ints.get(index, arr, off, len);
         assertTrue(msg, gets > 0);
+        // <发生的情况是, index 较大, 剩下的源数据个数不多，达不到len个
         assertTrue(msg, gets <= len);
+        // =发生的情况是, len较大, index后的源数据全部都被取出来了
         assertTrue(msg, gets <= ints.size() - index);
 
         for (int i = 0; i < arr.length; ++i) {
@@ -618,6 +639,9 @@ public class TestPackedInts extends LuceneTestCase {
     }
   }
 
+  /**
+   * 批量设置值
+   */
   public void testBulkSet() {
     final int valueCount = 1111;
     final int index = random().nextInt(valueCount);
@@ -627,8 +651,10 @@ public class TestPackedInts extends LuceneTestCase {
 
     for (int bpv = 1; bpv <= 64; ++bpv) {
       long mask = PackedInts.maxValue(bpv);
+      // 获取各种Reader实现，每种的bitsPerValue不一样
       List<PackedInts.Mutable> packedInts = createPackedInts(valueCount, bpv);
       for (int i = 0; i < arr.length; ++i) {
+        // TODO 31L * i + 19 有什么特殊含义吗？没看出来
         arr[i] = (31L * i + 19) & mask;
       }
 

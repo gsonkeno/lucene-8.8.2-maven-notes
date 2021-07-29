@@ -24,8 +24,8 @@ import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.RamUsageEstimator;
 
 /**
- * Space optimized random access capable array of values with a fixed number of
- * bits/value. Values are packed contiguously.
+ * Space optimized random access 随机访问 capable array of values with a fixed number of
+ * bits/value. Values are packed contiguously. 连续的
  * <p>
  * The implementation strives to perform as fast as possible under the
  * constraint of contiguous bits, by avoiding expensive operations. This comes
