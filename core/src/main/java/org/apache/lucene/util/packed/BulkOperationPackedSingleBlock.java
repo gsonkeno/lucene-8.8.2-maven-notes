@@ -34,11 +34,23 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     this.mask = (1L << bitsPerValue) - 1;
   }
 
+  /**
+   * 一个迭代批次中，编码源数据需要多少个 long block
+   * 该类只需要一个long block
+   * 即 1 long block <-----> 1 iteration
+   * @return
+   */
   @Override
   public final int longBlockCount() {
     return BLOCK_COUNT;
   }
 
+  /**
+   * 一个迭代批次中，编码源数据需要多少个  byte block
+   * 跟longBlockCount()方法相呼应， * 8 即可
+   * 即 8 byte block <----->1 iteration
+   * @return
+   */
   @Override
   public final int byteBlockCount() {
     return BLOCK_COUNT * 8;

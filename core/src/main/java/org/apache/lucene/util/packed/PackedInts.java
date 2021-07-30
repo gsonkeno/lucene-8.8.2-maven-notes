@@ -409,7 +409,9 @@ public class PackedInts {
      * Read <code>iterations * valueCount()</code> values from <code>values</code>,
      * encode them and write <code>iterations * blockCount()</code> blocks into
      * <code>blocks</code>.
-     *
+     *  1. 每个迭代批次 iteration 内部能表达valueCount个源数据
+     *  2. 要对源数据values数组从valuesOffset的位置开始编码，编码 iterations * valueCount个源数据
+     *  3. 编码后的对象存储到blocks数组中，从blocksOffset位置开始存储
      * @param blocks       the long blocks that hold packed integer values
      * @param blocksOffset the offset where to start writing blocks
      * @param values       the values buffer
