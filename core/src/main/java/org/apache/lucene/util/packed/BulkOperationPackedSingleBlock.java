@@ -25,10 +25,14 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
   private static final int BLOCK_COUNT = 1;
 
   private final int bitsPerValue;
+  // 注意，这里的valueCount表示一个迭代批次中可以表达的源数据
   private final int valueCount;
+  // bitsPerValue个Bit所能表示的最大数，也叫掩码
   private final long mask;
 
   public BulkOperationPackedSingleBlock(int bitsPerValue) {
+    // bitsPerValue不能大于32
+    assert bitsPerValue <= 32;
     this.bitsPerValue = bitsPerValue;
     this.valueCount = 64 / bitsPerValue;
     this.mask = (1L << bitsPerValue) - 1;
@@ -56,16 +60,31 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     return BLOCK_COUNT * 8;
   }
 
+  /**
+   * 一个迭代批次中，也即longBlockCount个 long block，可以表达多少个源数据;
+   * @return
+   */
   @Override
   public int longValueCount() {
     return valueCount;
   }
 
+  /**
+   * 一个迭代批次中，也即byteBlockCount个 byte block, 可以表达多少个源数据
+   * @return
+   */
   @Override
   public final int byteValueCount() {
     return valueCount;
   }
 
+  /**
+   * @see BulkOperation#writeLong(long, byte[], int) 可知blocks从blocksOffset位置
+   * 开始取出8个byte组成一个long，先取出来的byte放在高位
+   * @param blocks
+   * @param blocksOffset
+   * @return
+   */
   private static long readLong(byte[] blocks, int blocksOffset) {
     return (blocks[blocksOffset++] & 0xFFL) << 56
         | (blocks[blocksOffset++] & 0xFFL) << 48
@@ -77,6 +96,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
         | blocks[blocksOffset++] & 0xFFL;
   }
 
+  // 与下面直接相邻的方法类似，差别在于解码后的数据放到long[] 还是 int[] 中而已
   private int decode(long block, long[] values, int valuesOffset) {
     values[valuesOffset++] = block & mask;
     for (int j = 1; j < valueCount; ++j) {
@@ -86,7 +106,17 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     return valuesOffset;
   }
 
+  /**
+   * 从block的低位开始，每bitsPerValue个bit就组成了一个源数据
+   * 为什么要从低位开算算起，而不是高位呢？因为
+   * @see #encode(int[], int) 变码时写入时就是从低位开始写入的
+   * @param block
+   * @param values
+   * @param valuesOffset
+   * @return
+   */
   private int decode(long block, int[] values, int valuesOffset) {
+    // 这里强转为int, 有数据截断的风险，mask只要不大于Int最大值还好，所以构造函数中bitsPerValue最大也不能大于32，32就是极限了
     values[valuesOffset++] = (int) (block & mask);
     for (int j = 1; j < valueCount; ++j) {
       block >>>= bitsPerValue;
@@ -95,6 +125,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     return valuesOffset;
   }
 
+  // 和下面的encode方法有什么区别呢？编码源数据是long还是int的区别，其他就没有区别了
   private long encode(long[] values, int valuesOffset) {
     long block = values[valuesOffset++];
     for (int j = 1; j < valueCount; ++j) {
@@ -105,12 +136,15 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
 
   private long encode(int[] values, int valuesOffset) {
     long block = values[valuesOffset++] & 0xFFFFFFFFL;
+    // 一个迭代批次，就使用1个long block, 能编码valueCount个源数据
+    // for循环中可以发现优先编码到long的低位Bit上，再逐步向高位Bit编码
     for (int j = 1; j < valueCount; ++j) {
       block |= (values[valuesOffset++] & 0xFFFFFFFFL) << (j * bitsPerValue);
     }
     return block;
   }
 
+  // 将long[] 解码到 long[]
   @Override
   public void decode(long[] blocks, int blocksOffset, long[] values,
       int valuesOffset, int iterations) {
@@ -120,6 +154,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将byte[] 解码到 long[]
   @Override
   public void decode(byte[] blocks, int blocksOffset, long[] values,
       int valuesOffset, int iterations) {
@@ -130,6 +165,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将long[] 解码到 int[]
   @Override
   public void decode(long[] blocks, int blocksOffset, int[] values,
       int valuesOffset, int iterations) {
@@ -142,6 +178,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将byte[] 解码到 int[]
   @Override
   public void decode(byte[] blocks, int blocksOffset, int[] values,
       int valuesOffset, int iterations) {
@@ -155,6 +192,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将long[] 编码到long[]
   @Override
   public void encode(long[] values, int valuesOffset, long[] blocks,
       int blocksOffset, int iterations) {
@@ -164,6 +202,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将int[] 编码到 long[]
   @Override
   public void encode(int[] values, int valuesOffset, long[] blocks,
       int blocksOffset, int iterations) {
@@ -173,6 +212,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将long[] 编码到 byte[]
   @Override
   public void encode(long[] values, int valuesOffset, byte[] blocks, int blocksOffset, int iterations) {
     for (int i = 0; i < iterations; ++i) {
@@ -182,6 +222,7 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
     }
   }
 
+  // 将int[] 编码到 byte[]
   @Override
   public void encode(int[] values, int valuesOffset, byte[] blocks,
       int blocksOffset, int iterations) {

@@ -90,7 +90,7 @@ abstract class BulkOperation implements PackedInts.Decoder, PackedInts.Encoder {
     new BulkOperationPacked(64),
   };
 
-  // NOTE: this is sparse (some entries are null):
+  // NOTE: this is sparse (some entries are null): 稀疏的
   private static final BulkOperation[] packedSingleBlockBulkOps = new BulkOperation[] {
     new BulkOperationPackedSingleBlock(1),
     new BulkOperationPackedSingleBlock(2),
@@ -140,7 +140,16 @@ abstract class BulkOperation implements PackedInts.Decoder, PackedInts.Encoder {
     }
   }
 
+  /**
+   * 将long 写到byte数组中
+   * @param block
+   * @param blocks
+   * @param blocksOffset
+   * @return
+   */
   protected int writeLong(long block, byte[] blocks, int blocksOffset) {
+    // 一个long是8个byte，所以要将long分成8个bute，依次写入到 byte blocks中
+    // 那先写long的高8位，还是低8位呢？下面的代码显示先写高8位，最后写低8位
     for (int j = 1; j <= 8; ++j) {
       blocks[blocksOffset++] = (byte) (block >>> (64 - (j << 3)));
     }

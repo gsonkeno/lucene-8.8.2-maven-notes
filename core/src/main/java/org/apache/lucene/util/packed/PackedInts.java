@@ -451,10 +451,10 @@ public class PackedInts {
      * encode them and write <code>8 * iterations * blockCount()</code> blocks into
      * <code>blocks</code>.
      *
-     * @param blocks       the long blocks that hold packed integer values
-     * @param blocksOffset the offset where to start writing blocks
      * @param values       the values buffer
      * @param valuesOffset the offset where to start reading values
+     * @param blocks       the byte blocks that hold packed integer values
+     * @param blocksOffset the offset where to start writing blocks
      * @param iterations   controls how much data to encode
      */
     void encode(int[] values, int valuesOffset, byte[] blocks, int blocksOffset, int iterations);
