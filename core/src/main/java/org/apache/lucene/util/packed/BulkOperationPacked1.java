@@ -19,6 +19,7 @@
 package org.apache.lucene.util.packed;
 
 /**
+ * 高效地顺序读写
  * Efficient sequential read/write of packed integers.
  */
 final class BulkOperationPacked1 extends BulkOperationPacked {

@@ -18,6 +18,10 @@ package org.apache.lucene.util.packed;
 
 
 /**
+ * 用途场景:
+ * 1）一个迭代批次源数据只需要一个long block 就可进行编码，可编码valueCount个源数据
+ *
+ * 比如bitsPerValue=7, 在一个迭代批次中 一个long block可编码9个源数据，浪费1个Bit位
  * Non-specialized {@link BulkOperation} for {@link PackedInts.Format#PACKED_SINGLE_BLOCK}.
  */
 final class BulkOperationPackedSingleBlock extends BulkOperation {
