@@ -143,6 +143,7 @@ final class BulkOperationPacked3 extends BulkOperationPacked {
       values[valuesOffset++] = (block0 >>> 4) & 7L;
       values[valuesOffset++] = (block0 >>> 1) & 7L;
       final long block1 = blocks[blocksOffset++];
+      // block0只能表达21个源数据，剩下1个bit要与block1的高2个bit组在一起表达一个源数据
       values[valuesOffset++] = ((block0 & 1L) << 2) | (block1 >>> 62);
       values[valuesOffset++] = (block1 >>> 59) & 7L;
       values[valuesOffset++] = (block1 >>> 56) & 7L;
@@ -165,6 +166,7 @@ final class BulkOperationPacked3 extends BulkOperationPacked {
       values[valuesOffset++] = (block1 >>> 5) & 7L;
       values[valuesOffset++] = (block1 >>> 2) & 7L;
       final long block2 = blocks[blocksOffset++];
+      // block1的末尾2位(低2位)要与block2的开头1位(高1位)组合成一个源数据
       values[valuesOffset++] = ((block1 & 3L) << 1) | (block2 >>> 63);
       values[valuesOffset++] = (block2 >>> 60) & 7L;
       values[valuesOffset++] = (block2 >>> 57) & 7L;

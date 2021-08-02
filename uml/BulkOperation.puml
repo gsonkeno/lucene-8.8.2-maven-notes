@@ -21,7 +21,7 @@ BulkOperation<|-- BulkOperationPacked
 BulkOperationPacked<|-- BulkOperationPacked1
 BulkOperationPacked<|-- BulkOperationPacked2
 BulkOperationPacked<|-- BulkOperationPacked23
-BulkOperationPacked<|-- BulkOperationPackedSingleBlock
+BulkOperation<|-- BulkOperationPackedSingleBlock
 
 interface PackedInts.Decoder{
 + int longBlockCount()
