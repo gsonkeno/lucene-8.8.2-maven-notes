@@ -256,23 +256,33 @@ class BulkOperationPacked extends BulkOperation {
       int blocksOffset, int iterations) {
     int nextBlock = 0;
     int bitsLeft = 8;
+    // 这里举个例子，有4个源数据 001(1) A, 010(2) B, 011(3) C, 110(6) D 要进行编码
+    // bitsPerValue = 3,
     for (int i = 0; i < byteValueCount * iterations; ++i) {
       final int v = values[valuesOffset++];
       assert PackedInts.bitsRequired(v & 0xFFFFFFFFL) <= bitsPerValue;
       if (bitsPerValue < bitsLeft) {
         // just buffer
+        // A编码后, nextBlock 为 001_00000，将A编码到nextBlock的高位了
+        // B编码后, nextBlock 为 001010_00, 将B编码到nextBlock的次高位了
+        // C编码时,bitsLeft为2，走到下面的else分支了
         nextBlock |= v << (bitsLeft - bitsPerValue);
         bitsLeft -= bitsPerValue;
       } else {
         // flush as many blocks as possible
+        // 编码C时，bitsLeft=2，则bits=1,表示1个bit要到编码到下一个block,当前block只能编码2个bit了
         int bits = bitsPerValue - bitsLeft;
+        // 将C的高2位11留下来，继续编码到当前block中
         blocks[blocksOffset++] = (byte) (nextBlock | (v >>> bits));
         while (bits >= 8) {
           bits -= 8;
           blocks[blocksOffset++] = (byte) (v >>> bits);
         }
         // then buffer
+        // 编码C时，将剩余的1个bit继续在下一个block中进行编码
         bitsLeft = 8 - bits;
+        // v & ((1 << bits) - 1)表示v中剩余的未编码的bit位，由于优先编码高位，这里肯定是v的低位啦
+        // 左移bitsLeft=7次，表示编码到下一个block的高位上
         nextBlock = (v & ((1 << bits) - 1)) << bitsLeft;
       }
     }
