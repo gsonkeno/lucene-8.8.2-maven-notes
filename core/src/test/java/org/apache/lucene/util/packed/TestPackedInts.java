@@ -647,6 +647,7 @@ public class TestPackedInts extends LuceneTestCase {
     final int index = random().nextInt(valueCount);
     final int len = TestUtil.nextInt(random(), 1, valueCount * 2);
     final int off = random().nextInt(77);
+    // 注意,arr的长度
     long[] arr = new long[off+len];
 
     for (int bpv = 1; bpv <= 64; ++bpv) {

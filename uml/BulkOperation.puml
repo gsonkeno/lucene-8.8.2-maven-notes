@@ -56,5 +56,9 @@ end note
 class BulkOperationPacked{
 
 }
-note right: 实现了Encoder,Decoder的方法
+note right: 实现了Encoder,Decoder的方法\n紧凑型编码,无空间浪费
+
+class BulkOperationPackedSingleBlock{
+}
+note bottom: 实现了Encoder,Decoder的方法\n对齐型编码,有空间浪费
 @enduml

@@ -1,9 +1,9 @@
 @startuml
 'https://plantuml.com/class-diagram
 
-abstract class PackedInts.Reader
-abstract class PackedInts.Mutable
-class PackedInts.MutableImpl
+abstract class Reader
+abstract class Mutable
+class MutableImpl
 class Packed64SingleBlock.Packed64SingleBlock1
 class Packed64SingleBlock.Packed64SingleBlock2
 class Packed64SingleBlock.Packed64SingleBlock21
@@ -17,17 +17,57 @@ class Packed16ThreeBlocks
 class Packed64
 
 
-PackedInts.Reader <|-- PackedInts.Mutable
-PackedInts.Mutable <|-- PackedInts.MutableImpl
-PackedInts.MutableImpl <|-- Packed64SingleBlock
+Reader <|-- Mutable
+Mutable <|-- MutableImpl
+MutableImpl <|-- Packed64SingleBlock
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock1
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock2
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock21
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock32
-PackedInts.MutableImpl <|-- Direct8
-PackedInts.MutableImpl <|-- Direct64
-PackedInts.MutableImpl <|-- Packed8ThreeBlocks
-PackedInts.MutableImpl <|-- Packed16ThreeBlocks
-PackedInts.MutableImpl <|-- Packed64
+MutableImpl <|-- Direct8
+MutableImpl <|-- Direct64
+MutableImpl <|-- Packed8ThreeBlocks
+MutableImpl <|-- Packed16ThreeBlocks
+MutableImpl <|-- Packed64
+
+abstract class Reader{
+ + {abstract} long get(int index)
+ + int get(int index, long[] arr, int off, int len)
+ + {abstract}int size()
+}
+
+note left of Reader::get
+读取数据源中指定位置index的数据
+end note
+
+note right of Reader::"get(int index, long[] arr, int off, int len)"
+从指定位置index开始读取数据,
+最多读取len个数据，
+从arr[off]开始装载到arr中
+end note
+
+note left of Reader::size
+获取实现类数据源中存储的数据个数
+end note
+
+
+abstract class Mutable{
++ {abstract} int getBitsPerValue()
++ {abstract} void set(int index, long value)
++ int set(int index, long[] arr, int off, int len)
++ void fill(int fromIndex, int toIndex, long val)
++ void clear()
++ void save(DataOutput out)
+~ Format getFormat()
+}
+
+note left of Mutable::"set(int index, long value)"
+往源数据数组中指定位置index设置value
+end note
+
+note right of Mutable::"set(int index, long[] arr, int off, int len)"
+从arr中off位置最多取len个数据
+往源数据数组中指定位置index装载
+end note
 
 @enduml
