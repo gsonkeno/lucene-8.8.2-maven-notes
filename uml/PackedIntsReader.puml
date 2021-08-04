@@ -70,4 +70,12 @@ note right of Mutable::"set(int index, long[] arr, int off, int len)"
 往源数据数组中指定位置index装载
 end note
 
+note left of Mutable::fill
+填充元素
+end note
+
+note right of Mutable::save
+保存源数据到输出目的地
+end note
+
 @enduml

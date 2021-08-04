@@ -654,8 +654,9 @@ public class PackedInts {
   }
 
   static abstract class MutableImpl extends Mutable {
-
+    // 保存的数据个数
     protected final int valueCount;
+    // 保存的每个数据占用的bit位个数
     protected final int bitsPerValue;
 
     protected MutableImpl(int valueCount, int bitsPerValue) {

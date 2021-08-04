@@ -44,6 +44,7 @@ final class Direct16 extends PackedInts.MutableImpl {
     // because packed ints have not always been byte-aligned
     final int remaining = (int) (PackedInts.Format.PACKED.byteCount(packedIntsVersion, valueCount, 16) - 2L * valueCount);
     for (int i = 0; i < remaining; ++i) {
+      assert false;
       in.readByte();
     }
   }

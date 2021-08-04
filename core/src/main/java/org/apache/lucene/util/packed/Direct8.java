@@ -29,6 +29,7 @@ import java.util.Arrays;
  * @lucene.internal
  */
 final class Direct8 extends PackedInts.MutableImpl {
+  // 每个数据需要8bit，所以数据用 byte数组来保存
   final byte[] values;
 
   Direct8(int valueCount) {
@@ -40,8 +41,11 @@ final class Direct8 extends PackedInts.MutableImpl {
     this(valueCount);
     in.readBytes(values, 0, valueCount);
     // because packed ints have not always been byte-aligned
+    // 这里可以不用执行,因为remaining肯定为0
     final int remaining = (int) (PackedInts.Format.PACKED.byteCount(packedIntsVersion, valueCount, 8) - 1L * valueCount);
     for (int i = 0; i < remaining; ++i) {
+      // 走不到这里
+      assert false;
       in.readByte();
     }
   }
