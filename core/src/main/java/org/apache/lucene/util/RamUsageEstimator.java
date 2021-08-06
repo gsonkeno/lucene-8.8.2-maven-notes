@@ -63,28 +63,34 @@ public final class RamUsageEstimator {
   private RamUsageEstimator() {}
 
   /**
-   * True, iff compressed references (oops) are enabled by this JVM 
+   * True, iff compressed references (oops) are enabled by this JVM
+   * 是否开启指针压缩
    */
   public final static boolean COMPRESSED_REFS_ENABLED;
 
   /** 
-   * Number of bytes this JVM uses to represent an object reference. 
+   * Number of bytes this JVM uses to represent an object reference.
+   * 引用对象所需要的字节个数
+   * 64位虚拟机中开启指针压缩的情况下需要4字节,不开启指针压缩需要8字节
    */
   public final static int NUM_BYTES_OBJECT_REF;
 
   /**
    * Number of bytes to represent an object header (no fields, no alignments).
+   * 对象(非数组对象)头占用的大小,不考虑内部属性以及对齐情况
    */
   public final static int NUM_BYTES_OBJECT_HEADER;
 
   /**
    * Number of bytes to represent an array header (no content, but with alignments).
+   * 数组对象头的大小(无内容，但考虑对齐)
    */
   public final static int NUM_BYTES_ARRAY_HEADER;
   
   /**
    * A constant specifying the object alignment boundary inside the JVM. Objects will
-   * always take a full multiple of this constant, possibly wasting some space. 
+   * always take a full multiple of this constant, possibly wasting some space.
+   * 对象的对齐基线，一般是8字节
    */
   public final static int NUM_BYTES_OBJECT_ALIGNMENT;
 
@@ -177,8 +183,11 @@ public final class RamUsageEstimator {
       // reference size is 4, if we have compressed oops:
       NUM_BYTES_OBJECT_REF = COMPRESSED_REFS_ENABLED ? 4 : 8;
       // "best guess" based on reference size:
+      // 64位虚拟机 markword占用8字节，klazz指针在开启压缩的情况下需要4字节
       NUM_BYTES_OBJECT_HEADER = 8 + NUM_BYTES_OBJECT_REF;
       // array header is NUM_BYTES_OBJECT_HEADER + NUM_BYTES_INT, but aligned (object alignment):
+      // 数组的长度描述需要4字节,因为数组长度是用int描述的
+      // 对象头需要8字节对齐
       NUM_BYTES_ARRAY_HEADER = (int) alignObjectSize(NUM_BYTES_OBJECT_HEADER + Integer.BYTES);
     } else {
       JVM_IS_HOTSPOT_64BIT = false;
@@ -218,11 +227,13 @@ public final class RamUsageEstimator {
           + 2 * NUM_BYTES_OBJECT_REF; // previous & next references
 
   /** 
-   * Aligns an object size to be the next multiple of {@link #NUM_BYTES_OBJECT_ALIGNMENT}. 
+   * Aligns an object size to be the next multiple of {@link #NUM_BYTES_OBJECT_ALIGNMENT}.
+   * >=size且是8的倍数的最小值
    */
   public static long alignObjectSize(long size) {
     size += (long) NUM_BYTES_OBJECT_ALIGNMENT - 1L;
     return size - (size % NUM_BYTES_OBJECT_ALIGNMENT);
+    // size + ((long) NUM_BYTES_OBJECT_ALIGNMENT - 1L) - (size + ((long) NUM_BYTES_OBJECT_ALIGNMENT - 1L))/%NUM_BYTES_OBJECT_ALIGNMENT
   }
 
   /**
@@ -236,7 +247,9 @@ public final class RamUsageEstimator {
     return LONG_SIZE;
   }
 
-  /** Returns the size in bytes of the byte[] object. */
+  /** Returns the size in bytes of the byte[] object.
+   * 计算数组对象的大小  对象头 + 数组实例大小 + 8字节对齐
+   */
   public static long sizeOf(byte[] arr) {
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + arr.length);
   }
@@ -558,6 +571,7 @@ public final class RamUsageEstimator {
       final Class<?> target = clazz;
       final Field[] fields = AccessController.doPrivileged(new PrivilegedAction<Field[]>() {
         @Override
+        // 获取公开、私有属性都可以，但是排除继承属性
         public Field[] run() {
           return target.getDeclaredFields();
         }
