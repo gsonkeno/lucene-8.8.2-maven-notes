@@ -22,7 +22,7 @@ import org.apache.lucene.store.IndexInput;
 import java.io.IOException;
 
 /* Reads directly from disk on each get */
-// just for back compat, use DirectReader/DirectWriter for more efficient impl
+// just for back compat 兼容性，磁盘寻址, use DirectReader/DirectWriter for more efficient impl
 class DirectPackedReader extends PackedInts.ReaderImpl {
   final IndexInput in;
   final int bitsPerValue;

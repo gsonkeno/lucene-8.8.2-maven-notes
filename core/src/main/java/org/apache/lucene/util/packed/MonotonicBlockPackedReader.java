@@ -35,7 +35,7 @@ import org.apache.lucene.util.RamUsageEstimator;
  * @lucene.internal
  */
 public class MonotonicBlockPackedReader extends LongValues implements Accountable {
-
+  //average * (long) index本身是小数，这里转long了
   static long expected(long origin, float average, int index) {
     return origin + (long) (average * (long) index);
   }
@@ -56,6 +56,7 @@ public class MonotonicBlockPackedReader extends LongValues implements Accountabl
     this.valueCount = valueCount;
     blockShift = checkBlockSize(blockSize, MIN_BLOCK_SIZE, MAX_BLOCK_SIZE);
     blockMask = blockSize - 1;
+    // 写入时每blockSize个源数据就要flush一次
     final int numBlocks = numBlocks(valueCount, blockSize);
     minValues = new long[numBlocks];
     averages = new float[numBlocks];

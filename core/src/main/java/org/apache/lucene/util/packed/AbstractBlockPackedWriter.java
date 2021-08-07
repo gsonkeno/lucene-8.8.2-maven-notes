@@ -42,6 +42,10 @@ abstract class AbstractBlockPackedWriter {
   }
 
   protected DataOutput out;
+  /**
+   * 用long装载编码前的数据,长度是构造函数确定的
+   * @see #add(long)
+   */
   protected final long[] values;
   protected byte[] blocks;
   protected int off;
@@ -50,6 +54,7 @@ abstract class AbstractBlockPackedWriter {
 
   /**
    * Sole constructor.
+   * blockSize必须是64倍数， 每处理blockSize个源数据就要flush一次
    * @param blockSize the number of values of a single block, must be a multiple of <tt>64</tt>
    */
   public AbstractBlockPackedWriter(DataOutput out, int blockSize) {

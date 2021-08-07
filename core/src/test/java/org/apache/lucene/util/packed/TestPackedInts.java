@@ -1252,12 +1252,16 @@ public class TestPackedInts extends LuceneTestCase {
       final int valueCount = random().nextInt(1 << 18);
       final long[] values = new long[valueCount];
       if (valueCount > 0) {
+        // values[0]要么10以内，要么MAX_VALUE以内，随机的
         values[0] = random().nextBoolean() ? random().nextInt(10) : random().nextInt(Integer.MAX_VALUE);
+        // 最大delta为64
         int maxDelta = random().nextInt(64);
         for (int i = 1; i < valueCount; ++i) {
+          // 控制循环中连续两次的maxDelta是否改变
           if (random().nextDouble() < 0.1d) {
             maxDelta = random().nextInt(64);
           }
+          // values[i]>=, 且values[i] 与values[i-]的差距在-16到maxDelta 64之间, 总体来看，是单调向上的
           values[i] = Math.max(0, values[i-1] + TestUtil.nextInt(random(), -16, maxDelta));
         }
       }

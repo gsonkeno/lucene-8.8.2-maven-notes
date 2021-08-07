@@ -393,7 +393,7 @@ public class PackedInts {
     int longValueCount();
 
     /**
-     * 表示一个源数据需要多个byte表示，
+     * 表示一个跌倒批次的源数据需要多个byte表示，
      * 比如，源数据24位Bit，则需要3个byte表示
      * 又比如， 源数据50位Bit， 50Bit与8Bit的最小公倍数为200， 200/8=25个Byte, 25个Byte可以表示4个源数据
      * 即 bitPerValue * byteBlockCount = 8 * byteValueCount
@@ -403,6 +403,7 @@ public class PackedInts {
     int byteBlockCount();
 
     /**
+     * 表示一个迭代批次可以表达多少个源数据
      * The number of values that can be stored in {@link #byteBlockCount()} byte
      * blocks.
      */

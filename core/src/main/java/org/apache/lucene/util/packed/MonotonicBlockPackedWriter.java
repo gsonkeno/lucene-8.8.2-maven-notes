@@ -25,7 +25,7 @@ import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.BitUtil;
 
 /**
- * A writer for large monotonically increasing sequences of positive longs.
+ * A writer for large monotonically 单调的 increasing sequences of positive longs.
  * <p>
  * The sequence is divided into fixed-size blocks and for each block, values
  * are modeled after a linear function f: x &rarr; A &times; x + B. The block
@@ -50,7 +50,7 @@ import org.apache.lucene.util.BitUtil;
  *     are the {@link PackedInts packed} deltas from the expected value
  *     (computed from the function) using exactly BitsPerValue bits per value.
  * </ul>
- * @see MonotonicBlockPackedReader
+ * @see MonotonicBlockPackedReader 单调的
  * @lucene.internal
  */
 public final class MonotonicBlockPackedWriter extends AbstractBlockPackedWriter {
@@ -71,10 +71,11 @@ public final class MonotonicBlockPackedWriter extends AbstractBlockPackedWriter 
 
   protected void flush() throws IOException {
     assert off > 0;
-
+    // 第一个元素到最后一个元素的斜率, 拟合直线l1
     final float avg = off == 1 ? 0f : (float) (values[off - 1] - values[0]) / (off - 1);
     long min = values[0];
     // adjust min so that all deltas will be positive
+    // 调整，生成拟合直线l2, 使所有的delta都是正值
     for (int i = 1; i < off; ++i) {
       final long actual = values[i];
       final long expected = expected(min, avg, i);
@@ -88,12 +89,13 @@ public final class MonotonicBlockPackedWriter extends AbstractBlockPackedWriter 
       values[i] = values[i] - expected(min, avg, i);
       maxDelta = Math.max(maxDelta, values[i]);
     }
-
+    // min是最小值，values[i]是斜线上方的真实数据点到拟合直线l2上点的差值
     out.writeZLong(min);
     out.writeInt(Float.floatToIntBits(avg));
     if (maxDelta == 0) {
       out.writeVInt(0);
     } else {
+      // 根据最大差值，来确定差值使用几个bit位表示
       final int bitsRequired = PackedInts.bitsRequired(maxDelta);
       out.writeVInt(bitsRequired);
       writeValues(bitsRequired);
