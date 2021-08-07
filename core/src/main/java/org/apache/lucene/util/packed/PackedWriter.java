@@ -41,6 +41,7 @@ final class PackedWriter extends PackedInts.Writer {
     super(out, valueCount, bitsPerValue);
     this.format = format;
     encoder = BulkOperation.of(format, bitsPerValue);
+    // 这里计算iterations，是表示达到iterations个迭代批次时，进行一次flush，这样写入的效率是最高的
     iterations = encoder.computeIterations(valueCount, mem);
     // 以一次flush为基准，定义编码后需要的byte个数(  iterations * encoder.byteBlockCount()  )
     // 以及能表达的源数据个数(  iterations * encoder.byteValueCount()  )
@@ -64,9 +65,11 @@ final class PackedWriter extends PackedInts.Writer {
       throw new EOFException("Writing past end of stream");
     }
     nextValues[off++] = v;
+    // 当编码的源数据个数达到一个迭代批次能表达的源数据个数时，就要flush进入文件了
     if (off == nextValues.length) {
       flush();
     }
+    // 已写入的源数据个数 + 1
     ++written;
   }
 
@@ -74,6 +77,7 @@ final class PackedWriter extends PackedInts.Writer {
   public void finish() throws IOException {
     assert !finished;
     if (valueCount != -1) {
+      // 结束时，如果已add添加进去的源数据个数不足预先设定的valueCount个，就补0
       while (written < valueCount) {
         add(0L);
       }
@@ -81,7 +85,7 @@ final class PackedWriter extends PackedInts.Writer {
     flush();
     finished = true;
   }
-
+  // 刷一次
   private void flush() throws IOException {
     encoder.encode(nextValues, 0, nextBlocks, 0, iterations);
     final int blockCount = (int) format.byteCount(PackedInts.VERSION_CURRENT, off, bitsPerValue);

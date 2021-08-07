@@ -304,6 +304,7 @@ public class PackedInts {
     /**
      * The minimum number of byte blocks to encode in a single iteration, when
      * using byte encoding.
+     * 一个迭代批次的源数据编码所需要的 byte block 个数
      */
     int byteBlockCount();
 
@@ -315,6 +316,8 @@ public class PackedInts {
      *
      * bitsPerValue = 7 时，byteBlockCount()返回7， byteValuesCount()返回8
      * 这两个方法是息息相关的，不能孤立来看
+     *
+     * 一个迭代批次源数据使用Byte编码时，能装载的源数据个数
      */
     int byteValueCount();
 
@@ -425,10 +428,10 @@ public class PackedInts {
      * encode them and write <code>8 * iterations * blockCount()</code> blocks into
      * <code>blocks</code>.
      *
-     * @param blocks       the long blocks that hold packed integer values
-     * @param blocksOffset the offset where to start writing blocks
      * @param values       the values buffer
      * @param valuesOffset the offset where to start reading values
+     * @param blocks       the long blocks that hold packed integer values
+     * @param blocksOffset the offset where to start writing blocks
      * @param iterations   controls how much data to encode
      */
     void encode(long[] values, int valuesOffset, byte[] blocks, int blocksOffset, int iterations);
@@ -745,7 +748,9 @@ public class PackedInts {
     /** The format used to serialize values. */
     protected abstract PackedInts.Format getFormat();
 
-    /** Add a value to the stream. */
+    /** Add a value to the stream.
+     * 这里可以看出源数据为long
+     */
     public abstract void add(long v) throws IOException;
 
     /** The number of bits per value. */

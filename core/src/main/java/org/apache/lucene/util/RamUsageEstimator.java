@@ -183,7 +183,7 @@ public final class RamUsageEstimator {
       // reference size is 4, if we have compressed oops:
       NUM_BYTES_OBJECT_REF = COMPRESSED_REFS_ENABLED ? 4 : 8;
       // "best guess" based on reference size:
-      // 64位虚拟机 markword占用8字节，klazz指针在开启压缩的情况下需要4字节
+      // 64位虚拟机 markword占用8字节，klazz指针(指向类元数据)在开启压缩的情况下需要4字节
       NUM_BYTES_OBJECT_HEADER = 8 + NUM_BYTES_OBJECT_REF;
       // array header is NUM_BYTES_OBJECT_HEADER + NUM_BYTES_INT, but aligned (object alignment):
       // 数组的长度描述需要4字节,因为数组长度是用int描述的
@@ -529,7 +529,10 @@ public final class RamUsageEstimator {
 
   /** Returns the shallow size in bytes of the Object[] object. */
   // Use this method instead of #shallowSizeOf(Object) to avoid costly reflection
+  // 获取对象(非基本类型)数组的shallowSize, 避免了反射，消耗更小
   public static long shallowSizeOf(Object[] arr) {
+    // NUM_BYTES_ARRAY_HEADER 数组的对象头要求8字节对齐
+    // NUM_BYTES_OBJECT_REF 引用对象指针需要4字节
     return alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * arr.length);
   }
 
@@ -554,7 +557,9 @@ public final class RamUsageEstimator {
    * Returns the shallow instance size in bytes an instance of the given class would occupy.
    * This works with all conventional classes and primitive types, but not with arrays
    * (the size then depends on the number of elements and varies from object to object).
-   * 
+   *  1. 不处理数组，只处理对象(包括基本类型)
+   *  2. 计算对象shallow size时只处理成员变量，不考虑类变量, 还有考虑到类继承关系
+   *  3. 最后的结果要8字节对齐
    * @see #shallowSizeOf(Object)
    * @throws IllegalArgumentException if {@code clazz} is an array class. 
    */
@@ -563,7 +568,7 @@ public final class RamUsageEstimator {
       throw new IllegalArgumentException("This method does not work with array classes.");
     if (clazz.isPrimitive())
       return primitiveSizes.get(clazz);
-    
+    // maskword 在64位虚拟机下占用8字节，klazz 指针占用4字节，故对象头12字节
     long size = NUM_BYTES_OBJECT_HEADER;
 
     // Walk type hierarchy
@@ -577,7 +582,7 @@ public final class RamUsageEstimator {
         }
       });
       for (Field f : fields) {
-        if (!Modifier.isStatic(f.getModifiers())) {
+        if (!Modifier.isStatic(f.getModifiers())) { // 忽略静态属性
           size = adjustForField(size, f);
         }
       }
@@ -594,8 +599,10 @@ public final class RamUsageEstimator {
     if (len > 0) {
       Class<?> arrayElementClazz = array.getClass().getComponentType();
       if (arrayElementClazz.isPrimitive()) {
+        // 基本类型
         size += (long) len * primitiveSizes.get(arrayElementClazz);
       } else {
+        // 对象指针
         size += (long) NUM_BYTES_OBJECT_REF * len;
       }
     }

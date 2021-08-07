@@ -25,6 +25,7 @@ import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.RamUsageEstimator;
 
 /**
+ * 空间换时间
  * This class is similar to {@link Packed64} except that it trades space for
  * speed by ensuring that a single block needs to be read/written in order to
  * read/write a value.
@@ -548,6 +549,7 @@ abstract class Packed64SingleBlock extends PackedInts.MutableImpl {
       final int o = index / 3;
       final int b = index % 3;
       final int shift = b * 21;
+      // 先写入的元素占据block的低位
       return (blocks[o] >>> shift) & 2097151L;
     }
 
@@ -556,10 +558,13 @@ abstract class Packed64SingleBlock extends PackedInts.MutableImpl {
       final int o = index / 3;
       final int b = index % 3;
       final int shift = b * 21;
+      // 2097151L = 0x 1fffff
+      // 先写入的元素占据block的低位
       blocks[o] = (blocks[o] & ~(2097151L << shift)) | (value << shift);
     }
 
   }
+
 
   static class Packed64SingleBlock32 extends Packed64SingleBlock {
 

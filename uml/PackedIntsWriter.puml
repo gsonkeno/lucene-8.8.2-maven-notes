@@ -1,0 +1,46 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+abstract class Writer{
+ DataOutput out
+ int valueCount
+ int bitsPerValue
+
+ {abstract} void add(long v)
+ {abstract} void finish()
+ {abstract} int ord()
+}
+
+note left of Writer::ord
+已经写入的元素源数据个数 -1
+end note
+
+class PackedWriter {
+boolean finished
+BulkOperation encoder
+byte[] nextBlocks
+long[] nextValues
+int iterations
+PackedWriter(PackedInts.Format format, DataOutput out, int valueCount, int bitsPerValue, int mem)
+}
+
+note left of PackedWriter::encoder
+编码器,构造函数中确定
+end note
+
+note left of PackedWriter::nextBlocks
+下一次flush时,对应的要flush的编码后的byte[]
+end note
+
+note left of PackedWriter::nextValues
+下一次flush时,对应的要编码的源数据
+end note
+
+note left of PackedWriter::iterations
+一次flush所需要的迭代次数,为了高效写入编码数据到文件中
+end note
+
+
+Writer <|-- PackedWriter
+
+@enduml

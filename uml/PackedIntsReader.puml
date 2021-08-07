@@ -19,6 +19,7 @@ class Packed64
 
 Reader <|-- Mutable
 Mutable <|-- MutableImpl
+Mutable <|-- GrowableWriter
 MutableImpl <|-- Packed64SingleBlock
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock1
 Packed64SingleBlock <|-- Packed64SingleBlock.Packed64SingleBlock2
@@ -78,4 +79,18 @@ note right of Mutable::save
 保存源数据到输出目的地
 end note
 
+class Packed64SingleBlock
+note top: 单个block是long来表达，占据64位。\n 由于单个源数据占用的bit个数可能不会被64整除，\n 所以是对齐型，会空间浪费
+
+class Packed64SingleBlock.Packed64SingleBlock21
+note bottom: 每个源数据需要21个bit来表达
+
+class Packed8ThreeBlocks
+note bottom: 24bit 源数据, 需要3 byte block
+
+class Packed16ThreeBlocks
+note bottom: 48bit 源数据, 需要3 short block
+
+class GrowableWriter
+note left: 支持set源数据时，可变bitsPerValue
 @enduml

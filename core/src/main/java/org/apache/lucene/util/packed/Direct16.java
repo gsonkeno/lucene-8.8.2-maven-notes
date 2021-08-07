@@ -26,6 +26,7 @@ import java.util.Arrays;
 
 /**
  * Direct wrapping of 16-bits values to a backing array.
+ * 保存的数据都是以2字节为基准的，读写的单位都是short
  * @lucene.internal
  */
 final class Direct16 extends PackedInts.MutableImpl {
