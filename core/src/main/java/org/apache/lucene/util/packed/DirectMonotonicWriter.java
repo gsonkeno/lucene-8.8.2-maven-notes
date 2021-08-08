@@ -28,7 +28,8 @@ import org.apache.lucene.util.ArrayUtil;
  * data into blocks and then for each block, computes the average slope, the
  * minimum value and only encode the delta from the expected value using a
  * {@link DirectWriter}.
- * 
+ *
+ * 这才是真的严格单调递增源数据的写入工具类
  * @see DirectMonotonicReader
  * @lucene.internal 
  */

@@ -88,7 +88,8 @@ class DeltaPackedLongValues extends PackedLongValues {
       long min = values[0];
       for (int i = 1; i < numValues; ++i) {
         min = Math.min(min, values[i]);
-      } // values里记录的都是差量delta, 这里找出最小的delta, 将values里记录的差量delta再次编码，使差量编码所需要的bit个数再少一些
+      }
+      // values里记录的都是差量delta, 这里找出最小的delta, 将values里记录的差量delta再次编码，使差量编码所需要的bit个数再少一些,且这里的values全是正数
       for (int i = 0; i < numValues; ++i) {
         values[i] -= min;
       }
