@@ -70,7 +70,10 @@ public class PackedLongValues extends LongValues implements Accountable {
   }
 
   final PackedInts.Reader[] values;
+  // 首先说pageSize表示每add pageSize个元素，就要压缩一次，就会生成一个Reader
+  // pageSize必须是2的n次方,这个n就是pageShift; pageMark是掩码的意思,=pageSize-1
   final int pageShift, pageMask;
+  // size是add的所有元素个数
   private final long size;
   private final long ramBytesUsed;
 
@@ -97,6 +100,7 @@ public class PackedLongValues extends LongValues implements Accountable {
   }
 
   long get(int block, int element) {
+    // 具体看子类实现
     return values[block].get(element);
   }
 
@@ -105,6 +109,7 @@ public class PackedLongValues extends LongValues implements Accountable {
     assert index >= 0 && index < size();
     final int block = (int) (index >> pageShift);
     final int element = (int) (index & pageMask);
+    // 以确定读取第几个Reader的什么位置的元素
     return get(block, element);
   }
 
@@ -168,10 +173,11 @@ public class PackedLongValues extends LongValues implements Accountable {
     final int pageShift, pageMask;
     final float acceptableOverheadRatio;
     long[] pending;
-    long size;
-
+    long size; // 记录的是add的所有元素个数
+    // 每pack 压缩一次，其数据都在Reader中
     PackedInts.Reader[] values;
     long ramBytesUsed;
+    // 每pack 压缩一次, valuesOff+1
     int valuesOff;
     int pendingOff;
 
@@ -216,13 +222,14 @@ public class PackedLongValues extends LongValues implements Accountable {
       if (pending == null) {
         throw new IllegalStateException("Cannot be reused after build()");
       }
+      // 添加的元素个数等于构造函数的pageSize时，就要pack压缩一次
       if (pendingOff == pending.length) {
         // check size
         if (values.length == valuesOff) {
-          final int newLength = ArrayUtil.oversize(valuesOff + 1, 8);
+          final int newLength = ArrayUtil.oversize(valuesOff + 1, 8); // 扩容
           grow(newLength);
         }
-        pack();
+        pack(); // 达到pageSize个元素时，就压缩一次
       }
       pending[pendingOff++] = l;
       size += 1;
@@ -242,7 +249,7 @@ public class PackedLongValues extends LongValues implements Accountable {
       pack(pending, pendingOff, valuesOff, acceptableOverheadRatio);
       ramBytesUsed += values[valuesOff].ramBytesUsed();
       valuesOff += 1;
-      // reset pending buffer
+      // reset pending buffer 我这里把pending 叫做暂存器
       pendingOff = 0;
     }
 
@@ -256,7 +263,7 @@ public class PackedLongValues extends LongValues implements Accountable {
         maxValue = Math.max(maxValue, values[i]);
       }
 
-      // build a new packed reader
+      // build a new packed reader 增量delta全部为0
       if (minValue == 0 && maxValue == 0) {
         this.values[block] = new PackedInts.NullReader(numValues);
       } else {

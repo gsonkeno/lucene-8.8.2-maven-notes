@@ -24,6 +24,7 @@ import org.apache.lucene.store.DataOutput;
 /**
  * A {@link DataOutput} wrapper to write unaligned, variable-length packed
  * integers.
+ * 写元素，每个元素的bitsPerValue可能不一样
  * @see PackedDataInput
  * @lucene.internal
  */
@@ -44,6 +45,8 @@ public final class PackedDataOutput {
 
   /**
    * Write a value using exactly <code>bitsPerValue</code> bits.
+   * 将源数据value, long型按照 需要bitsPerValue个bit来表达写入到输出out中
+   * long 可能比 bitsPerValue个bit所能表达的最大值小很多
    */
   public void writeLong(long value, int bitsPerValue) throws IOException {
     assert bitsPerValue == 64 || (value >= 0 && value <= PackedInts.maxValue(bitsPerValue));
@@ -53,7 +56,7 @@ public final class PackedDataOutput {
         current = 0L;
         remainingBits = 8;
       }
-      final int bits = Math.min(remainingBits, bitsPerValue);
+      final int bits = Math.min(remainingBits, bitsPerValue);// 比如bitsPerValue=54,则从value的高位开始，一次8个bit写入到out中，则最后一次,bitsPerValue=6
       current = current | (((value >>> (bitsPerValue - bits)) & ((1L << bits) - 1)) << (remainingBits - bits));
       bitsPerValue -= bits;
       remainingBits -= bits;

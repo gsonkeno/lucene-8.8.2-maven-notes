@@ -25,6 +25,7 @@ import org.apache.lucene.store.DataInput;
  * A {@link DataInput} wrapper to read unaligned, variable-length packed
  * integers. This API is much slower than the {@link PackedInts} fixed-length
  * API but can be convenient to save space.
+ * 读元素，每个元素的bitsPerValue可能不一样
  * @see PackedDataOutput
  * @lucene.internal
  */

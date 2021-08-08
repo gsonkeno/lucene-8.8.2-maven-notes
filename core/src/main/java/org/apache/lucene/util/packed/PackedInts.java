@@ -121,11 +121,15 @@ public class PackedInts {
         return Packed64SingleBlock.isSupported(bitsPerValue);
       }
 
+
       @Override
       public float overheadPerValue(int bitsPerValue) {
         assert isSupported(bitsPerValue);
+        // 64bit所能表达的源数据个数
         final int valuesPerBlock = 64 / bitsPerValue;
+        // 浪费的bit个数
         final int overhead = 64 % bitsPerValue;
+        // 64bit中浪费的bit个数均摊到每个源数据头上
         return (float) overhead / valuesPerBlock;
       }
 
@@ -248,23 +252,40 @@ public class PackedInts {
     float acceptableOverheadPerValue = acceptableOverheadRatio * bitsPerValue; // in bits
 
     int maxBitsPerValue = bitsPerValue + (int) acceptableOverheadPerValue;
+    // bitsPerValue + (int) acceptableOverheadPerValue = bitsPerValue(1+ acceptableOverheadRatio)
+    // 1. 可以看出，当开销比acceptableOverheadRatio为最大值7时， 1+ acceptableOverheadRatio = 8, maxBitsPerValue是8的正整数倍，且大于bitsPerValue
+    //    只可能走到下面的路径a,b,c,d中。编码使用紧凑型，编码一个源数据正好用整数个byte, 空间浪费较重
+    // 2. 可以看出，当开销比acceptableOverheadRatio为 0.5 时， 1+ acceptableOverheadRatio = 1.5, maxBitsPerValue是bitsPerValue的1.5倍
+    //    可能走到任意的路径
 
     int actualBitsPerValue = -1;
     Format format = Format.PACKED;
 
+    // 路径a
     if (bitsPerValue <= 8 && maxBitsPerValue >= 8) {
       actualBitsPerValue = 8;
-    } else if (bitsPerValue <= 16 && maxBitsPerValue >= 16) {
+    }
+    // 路径b
+    else if (bitsPerValue <= 16 && maxBitsPerValue >= 16) {
       actualBitsPerValue = 16;
-    } else if (bitsPerValue <= 32 && maxBitsPerValue >= 32) {
+    }
+    // 路径c
+    else if (bitsPerValue <= 32 && maxBitsPerValue >= 32) {
       actualBitsPerValue = 32;
-    } else if (bitsPerValue <= 64 && maxBitsPerValue >= 64) {
+    }
+    // 路径d
+    else if (bitsPerValue <= 64 && maxBitsPerValue >= 64) {
       actualBitsPerValue = 64;
-    } else if (valueCount <= Packed8ThreeBlocks.MAX_SIZE && bitsPerValue <= 24 && maxBitsPerValue >= 24) {
+    }
+    // 路径e
+    else if (valueCount <= Packed8ThreeBlocks.MAX_SIZE && bitsPerValue <= 24 && maxBitsPerValue >= 24) {
       actualBitsPerValue = 24;
-    } else if (valueCount <= Packed16ThreeBlocks.MAX_SIZE && bitsPerValue <= 48 && maxBitsPerValue >= 48) {
+    }
+    // 路径f
+    else if (valueCount <= Packed16ThreeBlocks.MAX_SIZE && bitsPerValue <= 48 && maxBitsPerValue >= 48) {
       actualBitsPerValue = 48;
-    } else {
+    }
+    else {
       for (int bpv = bitsPerValue; bpv <= maxBitsPerValue; ++bpv) {
         if (Format.PACKED_SINGLE_BLOCK.isSupported(bpv)) {
           float overhead = Format.PACKED_SINGLE_BLOCK.overheadPerValue(bpv);

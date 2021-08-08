@@ -51,7 +51,7 @@ class DeltaPackedLongValues extends PackedLongValues {
   static class Builder extends PackedLongValues.Builder {
 
     private static final long BASE_RAM_BYTES_USED = RamUsageEstimator.shallowSizeOfInstance(Builder.class);
-
+    // 每次pack压缩都会产生一个min
     long[] mins;
 
     Builder(int pageSize, float acceptableOverheadRatio) {
@@ -76,12 +76,19 @@ class DeltaPackedLongValues extends PackedLongValues {
       return new DeltaPackedLongValues(pageShift, pageMask, values, mins, size, ramBytesUsed);
     }
 
+    /**
+     * 当add的元素个数达到 {@link PackedLongValues.Builder#pending} length时，就会触发一次pack压缩
+     * @param values
+     * @param numValues
+     * @param block
+     * @param acceptableOverheadRatio
+     */
     @Override
     void pack(long[] values, int numValues, int block, float acceptableOverheadRatio) {
       long min = values[0];
       for (int i = 1; i < numValues; ++i) {
         min = Math.min(min, values[i]);
-      }
+      } // values里记录的都是差量delta, 这里找出最小的delta, 将values里记录的差量delta再次编码，使差量编码所需要的bit个数再少一些
       for (int i = 0; i < numValues; ++i) {
         values[i] -= min;
       }

@@ -1027,7 +1027,7 @@ public class TestPackedInts extends LuceneTestCase {
     final long[] arr = new long[RandomNumbers.randomIntBetween(random(), 1, TEST_NIGHTLY ? 1000000 : 10000)];
     float[] ratioOptions = new float[]{PackedInts.DEFAULT, PackedInts.COMPACT, PackedInts.FAST};
     for (int bpv : new int[]{0, 1, 63, 64, RandomNumbers.randomIntBetween(random(), 2, 62)}) {
-      for (DataType dataType : Arrays.asList(DataType.DELTA_PACKED)) {
+      for (DataType dataType : Arrays.asList(DataType.values())) {
         final int pageSize = 1 << TestUtil.nextInt(random(), 6, 20);
         float acceptableOverheadRatio = ratioOptions[TestUtil.nextInt(random(), 0, ratioOptions.length - 1)];
         PackedLongValues.Builder buf;
@@ -1101,6 +1101,10 @@ public class TestPackedInts extends LuceneTestCase {
     }
   }
 
+  /**
+   * 连续读写元素，每个元素的bitsPerValue可能不一样
+   * @throws IOException
+   */
   public void testPackedInputOutput() throws IOException {
     final long[] longs = new long[random().nextInt(8192)];
     final int[] bitsPerValues = new int[longs.length];
@@ -1158,6 +1162,8 @@ public class TestPackedInts extends LuceneTestCase {
       final long[] values = new long[valueCount];
       long minValue = 0;
       int bpv = 0;
+      // 如何理解呢？当i达到 i % blockSize == 0时，写入就会flush一次
+      // 所以这里是对每次要flush的源数据集，设置其值为 minValue + TestUtil.nextLong(random, 0, (1L << bpv) - 1);
       for (int i = 0; i < valueCount; ++i) {
         if (i % blockSize == 0) {
           minValue = rarely(random) ? random.nextInt(256) : rarely(random) ? -5 : random.nextLong();

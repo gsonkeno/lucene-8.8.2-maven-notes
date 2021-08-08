@@ -161,7 +161,7 @@ public final class ArrayUtil {
 
     if (extra < 3) {
       // for very small arrays, where constant overhead of
-      // realloc is presumably relatively high, we grow
+      // realloc is presumably 大概地 relatively high, we grow
       // faster
       extra = 3;
     }

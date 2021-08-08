@@ -84,10 +84,8 @@ public final class BlockPackedWriter extends AbstractBlockPackedWriter {
       // make min as small as possible so that writeVLong requires fewer bytes
       min = Math.max(0L, max - PackedInts.maxValue(bitsRequired));
     }
-
     final int token = (bitsRequired << BPV_SHIFT) | (min == 0 ? MIN_VALUE_EQUALS_0 : 0);
     out.writeByte((byte) token);
-
     if (min != 0) {
       writeVLong(out, zigZagEncode(min) - 1);
     }
@@ -100,7 +98,6 @@ public final class BlockPackedWriter extends AbstractBlockPackedWriter {
       }
       writeValues(bitsRequired);
     }
-
     off = 0;
   }
 
