@@ -20,9 +20,13 @@ package org.apache.lucene.store;
 import java.io.IOException;
 import java.util.Collection;
 
-/** 
- * This class makes a best-effort check that a provided {@link Lock}
- * is valid before any destructive filesystem operation.
+/**
+ * 对Directory通过LockValidatingDirectoryWrapper对象进行再次封装， 使得在对索引目录中的文件进行任意形式的
+ * 具有"破坏性"（destructive）的文件系统操作（filesystem operation）前尽可能（best-effort）
+ * 确保索引文件锁是有效的（valid）
+ *
+ * This class makes a best-effort（尽可能的) check that a provided {@link Lock}
+ * is valid before any destructive(破坏性的) filesystem operation(文件系统操作).
  */
 public final class LockValidatingDirectoryWrapper extends FilterDirectory {
   private final Lock writeLock;

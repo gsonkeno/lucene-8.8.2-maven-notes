@@ -60,7 +60,9 @@ public abstract class DocIdSetIterator {
   }
 
   /** A {@link DocIdSetIterator} that matches all documents up to
-   *  {@code maxDoc - 1}. */
+   *  {@code maxDoc - 1}.
+   *  匹配 0- (maxDoc-1)的所有文档编号
+   *  */
   public static final DocIdSetIterator all(int maxDoc) {
     return new DocIdSetIterator() {
       int doc = -1;
@@ -70,6 +72,11 @@ public abstract class DocIdSetIterator {
         return doc;
       }
 
+      /**
+       * 每next一次，指针+1
+       * @return
+       * @throws IOException
+       */
       @Override
       public int nextDoc() throws IOException {
         return advance(doc + 1);

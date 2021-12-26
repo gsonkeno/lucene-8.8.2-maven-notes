@@ -24,6 +24,7 @@ import java.util.List;
  * keeps only the most recent commit and immediately removes
  * all prior commits after a new commit is done.  This is
  * the default deletion policy.
+ * 默认的索引删除策略
  */
 
 public final class KeepOnlyLastCommitDeletionPolicy extends IndexDeletionPolicy {

@@ -30,7 +30,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 public class PackedLongValues extends LongValues implements Accountable {
 
   private static final long BASE_RAM_BYTES_USED = RamUsageEstimator.shallowSizeOfInstance(PackedLongValues.class);
-
+  // 每1024个源数据就会产生
   static final int DEFAULT_PAGE_SIZE = 1024;
   static final int MIN_PAGE_SIZE = 64;
   // More than 1M doesn't really makes sense with these appending buffers
@@ -123,12 +123,16 @@ public class PackedLongValues extends LongValues implements Accountable {
     return new Iterator();
   }
 
-  /** An iterator over long values. */
+  /** An iterator over long values.
+   * PackedLongValues的内部类，迭代访问元素使用
+   */
   final public class Iterator {
 
     final long[] currentValues;
     int vOff, pOff;
-    int currentCount; // number of entries of the current page
+    // number of entries of the current page
+    // 当前页的元素数量，绝大多数情况下为pageMask，除非是最后一页
+    int currentCount;
 
     Iterator() {
       currentValues = new long[pageMask + 1];
@@ -140,6 +144,7 @@ public class PackedLongValues extends LongValues implements Accountable {
       if (vOff == values.length) {
         currentCount = 0;
       } else {
+        // 一次解析一个block中的所有元素到内存currentValues中
         currentCount = decodeBlock(vOff, currentValues);
         assert currentCount > 0;
       }

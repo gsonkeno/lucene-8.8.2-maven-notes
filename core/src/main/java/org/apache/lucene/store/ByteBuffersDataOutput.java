@@ -295,6 +295,7 @@ public final class ByteBuffersDataOutput extends DataOutput implements Accountab
   }
 
   /**
+   * output至今已经写入的byte数量
    * @return The number of bytes written to this output so far.
    */
   public long size() {

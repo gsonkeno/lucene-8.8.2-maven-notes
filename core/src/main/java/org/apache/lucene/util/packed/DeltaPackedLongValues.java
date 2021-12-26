@@ -21,6 +21,9 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.packed.PackedInts.Reader;
 
+/**
+ * 增量编码，编码的是相邻元素后一个对前一个的增量
+ */
 class DeltaPackedLongValues extends PackedLongValues {
 
   private static final long BASE_RAM_BYTES_USED = RamUsageEstimator.shallowSizeOfInstance(DeltaPackedLongValues.class);

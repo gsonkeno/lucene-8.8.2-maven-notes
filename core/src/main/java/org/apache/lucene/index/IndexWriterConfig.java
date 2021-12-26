@@ -357,7 +357,11 @@ public final class IndexWriterConfig extends LiveIndexWriterConfig {
    * {@link DocumentsWriterPerThread} from address space exhaustion due to its
    * internal 32 bit signed integer based memory addressing.
    * The given value must be less that 2GB (2048MB)
-   * 
+   *
+   * 设置每个线程在超过强制刷新时触发的最大内存消耗。DocumentsWriterPerThread(DWPT)一旦超过这个限制，就会被强制刷新，
+   * 即使RAMBufferSizeMB没有超过。这是一个安全限制，
+   * 用于防止DocumentsWriterPerThread由于其内部32位有符号整数的内存寻址而导致地址空间耗尽。给定值必须小于2GB (2048MB)
+   *
    * @see #DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB
    */
   public IndexWriterConfig setRAMPerThreadHardLimitMB(int perThreadHardLimitMB) {

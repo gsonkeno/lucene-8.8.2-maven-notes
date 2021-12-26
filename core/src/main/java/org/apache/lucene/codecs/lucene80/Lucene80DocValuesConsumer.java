@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.lucene.DebugUtil;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
@@ -61,7 +62,9 @@ import static org.apache.lucene.codecs.lucene80.Lucene80DocValuesFormat.DIRECT_M
 import static org.apache.lucene.codecs.lucene80.Lucene80DocValuesFormat.NUMERIC_BLOCK_SHIFT;
 import static org.apache.lucene.codecs.lucene80.Lucene80DocValuesFormat.NUMERIC_BLOCK_SIZE;
 
-/** writer for {@link Lucene80DocValuesFormat} */
+/** writer for {@link Lucene80DocValuesFormat}
+ * https://www.amazingkoala.com.cn/Lucene/DocValues/2019/0409/46.html
+ */
 final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Closeable {
 
   final Lucene80DocValuesFormat.Mode mode;
@@ -153,7 +156,9 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
       }
     }
 
-    /** Update space usage and get ready for accumulating values for the next block. */
+    /** Update space usage and get ready for accumulating values for the next block.
+     * @see Lucene80DocValuesFormat#NUMERIC_BLOCK_SIZE 个元素被添加时，就再生成一个block承载新的数据
+     */
     void nextBlock() {
       finish();
       reset();
@@ -161,6 +166,9 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
   }
 
   private long[] writeValues(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    DebugUtil.debugDocValues(Lucene80DocValuesConsumer.class, "beforeWriteValues_dvd_fp", data.getFilePointer());
+    DebugUtil.debugDocValues(Lucene80DocValuesConsumer.class, "beforeWriteValues_dvm_fp", meta.getFilePointer());
+
     SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
     int numDocsWithValue = 0;
     MinMaxTracker minMax = new MinMaxTracker();
@@ -191,6 +199,8 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
         if (uniqueValues != null
             && uniqueValues.add(v)
             && uniqueValues.size() > 256) {
+          // 当不同域值的个数超过 256时，说明域值种类太多了，强制设置为null，后面不会对此进行优化
+          // 而当域值种类不超过 256时，是可能存在优化空间的
           uniqueValues = null;
         }
       }
@@ -216,6 +226,11 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
       meta.writeLong(0L); // docsWithFieldLength
       meta.writeShort((short) -1); // jumpTableEntryCount
       meta.writeByte((byte) -1);   // denseRankPower
+
+      DebugUtil.debugDocValues(Lucene80DocValuesConsumer.class, "All_documents_has_values_dvd_fp", data.getFilePointer());
+      DebugUtil.debugDocValues(Lucene80DocValuesConsumer.class, "All_documents_has_values_dvd_fp_dvm_fp", meta.getFilePointer());
+
+
     } else {                                  // meta[data.offset, data.length]: IndexedDISI structure for documents with values
       long offset = data.getFilePointer();
       meta.writeLong(offset);// docsWithFieldOffset
@@ -234,9 +249,11 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
       numBitsPerValue = 0;
       meta.writeInt(-1); // tablesize
     } else {
+      // 优化方式1，域值种类 <=256,且优化后的存储空间小于优化前，就应该优化
       if (uniqueValues != null
           && uniqueValues.size() > 1
-          && DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1) < DirectWriter.unsignedBitsRequired((max - min) / gcd)) {
+          && DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1)
+              < DirectWriter.unsignedBitsRequired((max - min) / gcd)) {
         numBitsPerValue = DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1);
         final Long[] sortedUniqueValues = uniqueValues.toArray(new Long[0]);
         Arrays.sort(sortedUniqueValues);
@@ -254,8 +271,11 @@ final class Lucene80DocValuesConsumer extends DocValuesConsumer implements Close
         uniqueValues = null;
         // we do blocks if that appears to save 10+% storage
         doBlocks = minMax.spaceInBits > 0 && (double) blockMinMax.spaceInBits / minMax.spaceInBits <= 0.9;
+        // 优化方式2， 当前blockMinMax所占用的内存空间 不超过 minMax所占用内存空间 9/10时，采取多block处理
+        // 比如前 16384个元素要么是 3, 要么是4; 而后1000个元素在 2000~3000之间;
+        // 如果所有元素放在一起进行delta编码，耗费的内存肯定比分成两块耗费的内存多
         if (doBlocks) {
-          numBitsPerValue = 0xFF;
+          numBitsPerValue = 0xFF;   // 255
           meta.writeInt(-2 - NUMERIC_BLOCK_SHIFT); // tablesize
         } else {
           numBitsPerValue = DirectWriter.unsignedBitsRequired((max - min) / gcd);

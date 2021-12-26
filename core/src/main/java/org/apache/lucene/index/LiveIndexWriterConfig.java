@@ -77,7 +77,9 @@ public class LiveIndexWriterConfig {
   /** {@link InfoStream} for debugging messages. */
   protected volatile InfoStream infoStream;
 
-  /** {@link MergePolicy} for selecting merges. */
+  /** {@link MergePolicy} for selecting merges.
+   *
+   */
   protected volatile MergePolicy mergePolicy;
 
   /** True if readers should be pooled. */
@@ -103,7 +105,10 @@ public class LiveIndexWriterConfig {
   /** The field names involved in the index sort */
   protected Set<String> indexSortFields = Collections.emptySet();
 
-  /** if an indexing thread should check for pending flushes on update in order to help out on a full flush*/
+  /** if an indexing thread should check for pending flushes on update in order to help out on a full flush
+   * 该值为布尔值，如果设置为true，那么当一个执行添加或更新文档操作的线程完成处理文档的工作后，会尝试去帮助待flush的DWPT
+   *
+   */
   protected volatile boolean checkPendingFlushOnUpdate = true;
 
   /** soft deletes field */

@@ -126,7 +126,7 @@ public final class ArrayUtil {
    *
    *  NOTE: this was originally borrowed from Python 2.4.2
    *  listobject.c sources (attribution in LICENSE.txt), but
-   *  has now been substantially changed based on
+   *  has now been substantially 充分地 大体上 实质上 大幅度 本质上 changed based on
    *  discussions from java-dev thread with subject "Dynamic
    *  array reallocation algorithms", started on Jan 12
    *  2010.

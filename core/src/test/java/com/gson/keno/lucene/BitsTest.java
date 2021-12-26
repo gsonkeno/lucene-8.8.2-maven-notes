@@ -120,5 +120,15 @@ public class BitsTest {
         System.out.println(c);
     }
 
+    @Test
+    public void test4(){
+        long l = Long.MIN_VALUE + 1;
+        System.out.println(Long.toHexString(l));
+        int i = 0;
+        while ( i ++ < 20){
+            System.out.println(Long.toHexString(l++));
+        }
+    }
+
 
 }

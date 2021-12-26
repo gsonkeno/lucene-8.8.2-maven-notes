@@ -35,8 +35,8 @@ public final class FixedBitSet extends BitSet implements Bits, Accountable {
 
   private static final long BASE_RAM_BYTES_USED = RamUsageEstimator.shallowSizeOfInstance(FixedBitSet.class);
 
-  private final long[] bits; // Array of longs holding the bits 
-  private final int numBits; // The number of bits in use
+  private final long[] bits; // Array of longs holding the bits 分配bit的容器大小
+  private final int numBits; // The number of bits in use 实际使用到的bit个数
   private final int numWords; // The exact number of longs needed to hold numBits (<= bits.length)
   
   /**
@@ -107,7 +107,7 @@ public final class FixedBitSet extends BitSet implements Bits, Accountable {
 
   /**
    * Creates a new LongBitSet.
-   * The internally allocated long array will be exactly the size needed to accommodate the numBits specified.
+   * The internally allocated long array will be exactly the size needed to accommodate 适应 the numBits specified.
    * @param numBits the number of bits needed
    */
   public FixedBitSet(int numBits) {
@@ -185,11 +185,11 @@ public final class FixedBitSet extends BitSet implements Bits, Accountable {
     long bitmask = 1L << index;
     return (bits[i] & bitmask) != 0;
   }
-
+  // 在index这个位置设标为1
   public void set(int index) {
     assert index >= 0 && index < numBits: "index=" + index + ", numBits=" + numBits;
     int wordNum = index >> 6;      // div 64
-    long bitmask = 1L << index;
+    long bitmask = 1L << index; // 牛逼，等价于 1L << (index%64)
     bits[wordNum] |= bitmask;
   }
 

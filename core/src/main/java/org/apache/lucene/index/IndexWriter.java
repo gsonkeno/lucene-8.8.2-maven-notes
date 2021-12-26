@@ -899,6 +899,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
    * <p>
    * <b>NOTE:</b> after ths writer is created, the given configuration instance
    * cannot be passed to another writer.
+   * IndexWriterConfig 一旦与一个IndexWriter绑定后，不能易主
    * 
    * @param d
    *          the index directory. The index is either created or appended
@@ -974,6 +975,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         // against an index that's currently open for
         // searching.  In this case we write the next
         // segments_N file with no segments:
+        // SegmentInfos对象是索引文件segments_N以及索引文件.si在内存中的描述
         final SegmentInfos sis = new SegmentInfos(config.getIndexCreatedVersionMajor());
         if (indexExists) {
           final SegmentInfos previous = SegmentInfos.readLatestCommit(directory);
@@ -1003,10 +1005,13 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         }
 
         // Must clone because we don't want the incoming NRT reader to "see" any changes this writer now makes:
+        // 在APPEND模式下，则是用StandardDirectoryReader中的索引信息来初始化一个新的SegmentInfos对象，即所谓的"追加"
         segmentInfos = reader.segmentInfos.clone();
 
         SegmentInfos lastCommit;
         try {
+          // 上文中根据IndexCommit获得的StandardDirectoryReader，它包含的SegmentInfos在后面的流程中将会作为回滚内容，
+          // 而在这个流程中，最重要的一步是检查SegmentInfos中包含的索引信息对应的索引文件是否还在索引目录中。
           lastCommit = SegmentInfos.readCommit(directoryOrig, segmentInfos.getSegmentsFileName());
         } catch (IOException ioe) {
           throw new IllegalArgumentException("the provided reader is stale: its prior commit file \"" + segmentInfos.getSegmentsFileName() + "\" is missing from index");

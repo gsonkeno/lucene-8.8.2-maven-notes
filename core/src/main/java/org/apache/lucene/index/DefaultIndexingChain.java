@@ -330,7 +330,7 @@ final class DefaultIndexingChain extends DocConsumer {
     boolean success = false;
     try {
       for (int i=0;i<fieldHash.length;i++) {
-        PerField perField = fieldHash[i];
+        PerField perField = fieldHash[i]; // debug时，为null的元素不可见
         while (perField != null) {
           if (perField.docValuesWriter != null) {
             if (perField.fieldInfo.getDocValuesType() == DocValuesType.NONE) {
@@ -532,6 +532,7 @@ final class DefaultIndexingChain extends DocConsumer {
     }
 
     // Add stored fields:
+    // stored fields才处理
     if (fieldType.stored()) {
       if (fp == null) {
         fp = getOrAddField(fieldName, fieldType, false);
@@ -549,7 +550,7 @@ final class DefaultIndexingChain extends DocConsumer {
         }
       }
     }
-
+    // NUMERIC 等
     DocValuesType dvType = fieldType.docValuesType();
     if (dvType == null) {
       throw new NullPointerException("docValuesType must not be null (field: \"" + fieldName + "\")");
@@ -557,7 +558,7 @@ final class DefaultIndexingChain extends DocConsumer {
     if (dvType != DocValuesType.NONE) {
       if (fp == null) {
         fp = getOrAddField(fieldName, fieldType, false);
-      }
+      }// 索引docValues，用来排序，聚合等
       indexDocValue(docID, fp, dvType, field);
     }
     if (fieldType.pointDimensionCount() != 0) {
@@ -665,7 +666,10 @@ final class DefaultIndexingChain extends DocConsumer {
     }
   }
 
-  /** Called from processDocument to index one field's doc value */
+  /** Called from processDocument to index one field's doc value
+   * 为单个字段创建doc value 索引，processDocument调用而来
+   * @see #processDocument(int, Iterable)
+   * */
   private void indexDocValue(int docID, PerField fp, DocValuesType dvType, IndexableField field) throws IOException {
 
     if (fp.fieldInfo.getDocValuesType() == DocValuesType.NONE) {

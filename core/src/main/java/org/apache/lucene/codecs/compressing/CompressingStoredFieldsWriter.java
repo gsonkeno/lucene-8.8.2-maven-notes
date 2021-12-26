@@ -97,10 +97,20 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
   private final int maxDocsPerChunk;
 
   private final ByteBuffersDataOutput bufferedDocs;
+  /**
+   * 每个文档中的stored field的数量
+   * @see #finishDocument()
+   */
   private int[] numStoredFields; // number of stored fields
+  /**
+   * 与bufferedDocs有关系,每处理一篇文档，记录bufferedDocs的文件指针偏移位置
+   */
   private int[] endOffsets; // end offsets in bufferedDocs
   private int docBase; // doc ID at the beginning of the chunk
-  private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID, 每finishDocument一次，加1
+  /**
+   * 每finishDocument一次，加1, 表示当前已处理的文档数
+   */
+  private int numBufferedDocs; // docBase + numBufferedDocs == current doc ID
   
   private long numDirtyChunks; // number of incomplete compressed blocks written
   private long numDirtyDocs; // cumulative number of missing docs in incomplete chunks
@@ -166,11 +176,10 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
    */
   @Override
   public void startDocument() throws IOException {
-    System.out.println("CompressingStoredFieldsWriter.startDocument");
   }
 
   /**
-   * 对于每个文档，每个field都会依次调用该方法
+   * 对于每个文档，每个具有stored属性 的 field都会依次调用该方法
    * @param info
    * @param field
    * @throws IOException
@@ -261,6 +270,7 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
     this.numStoredFields[numBufferedDocs] = numStoredFieldsInDoc;
     numStoredFieldsInDoc = 0;
     endOffsets[numBufferedDocs] = Math.toIntExact(bufferedDocs.size());
+    // finish 一个doc, numBufferedDocs + 1,
     ++numBufferedDocs;
     if (triggerFlush()) {
       flush();
@@ -277,10 +287,10 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
   private void flush() throws IOException {
     indexWriter.writeIndex(numBufferedDocs, fieldsStream.getFilePointer());
 
-    // transform end offsets into lengths
+    // transform end offsets into lengths  如果文档中的field都没有stored属性，endOffsets元素都是0
     final int[] lengths = endOffsets;
     for (int i = numBufferedDocs - 1; i > 0; --i) {
-      lengths[i] = endOffsets[i] - endOffsets[i - 1];
+      lengths[i] = endOffsets[i] - endOffsets[i - 1]; //因为endOffsets 记录的是每个文档finish后的output 指针， 所以减法获取长度
       assert lengths[i] >= 0;
     }
     // storeField存储内容字节数 不小于 2* 600k时就要进行分块压缩

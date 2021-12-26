@@ -24,9 +24,14 @@ import org.apache.lucene.util.TestUtil;
 
 public class TestDocsWithFieldSet extends LuceneTestCase {
 
+  /**
+   * 稠密的;体现在add的元素是连续的
+   * @throws IOException
+   */
   public void testDense() throws IOException {
     DocsWithFieldSet set = new DocsWithFieldSet();
     DocIdSetIterator it = set.iterator();
+    // 空集合，所以是NO_MORE_DOCS
     assertEquals(DocIdSetIterator.NO_MORE_DOCS, it.nextDoc());
 
     set.add(0);
@@ -38,6 +43,7 @@ public class TestDocsWithFieldSet extends LuceneTestCase {
     for (int i = 1; i < 1000; ++i) {
       set.add(i);
     }
+    // 因为add的元素从0到999连续，set内部的FixedBitSet实际上并没有用到，所以ramBytesUsed不变
     assertEquals(ramBytesUsed, set.ramBytesUsed());
     it = set.iterator();
     for (int i = 0; i < 1000; ++i) {
@@ -46,21 +52,35 @@ public class TestDocsWithFieldSet extends LuceneTestCase {
     assertEquals(DocIdSetIterator.NO_MORE_DOCS, it.nextDoc());
   }
 
+  /**
+   * 稀疏的
+   * @throws IOException
+   */
   public void testSparse() throws IOException {
     DocsWithFieldSet set = new DocsWithFieldSet();
     int doc = random().nextInt(10000);
+    // 添加的元素只能越来越大
     set.add(doc);
+    // BitSetIterator
     DocIdSetIterator it = set.iterator();
+    // 因为只有1个元素
     assertEquals(doc, it.nextDoc());
     assertEquals(DocIdSetIterator.NO_MORE_DOCS, it.nextDoc());
+
+    // 注意到doc2是比doc1大的
     int doc2 = doc + TestUtil.nextInt(random(), 1, 100);
     set.add(doc2);
+    // 重新获取到迭代器
     it = set.iterator();
     assertEquals(doc, it.nextDoc());
     assertEquals(doc2, it.nextDoc());
     assertEquals(DocIdSetIterator.NO_MORE_DOCS, it.nextDoc());
   }
 
+  /**
+   * 前面的都是稠密的，最后一个是稀疏的
+   * @throws IOException
+   */
   public void testDenseThenSparse() throws IOException {
     int denseCount = random().nextInt(10000);
     int nextDoc = denseCount + random().nextInt(10000);

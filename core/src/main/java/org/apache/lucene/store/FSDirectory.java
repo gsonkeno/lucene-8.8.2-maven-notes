@@ -56,7 +56,7 @@ import org.apache.lucene.util.IOUtils;
  *  <li>{@link SimpleFSDirectory} is a straightforward
  *       implementation using Files.newByteChannel.
  *       However, it has poor concurrent performance
- *       (multiple threads will bottleneck) as it
+ *       (multiple threads will bottleneck 瓶颈) as it
  *       synchronizes when multiple threads read from the
  *       same file.
  *
@@ -96,6 +96,7 @@ import org.apache.lucene.util.IOUtils;
  *       an important limitation to be aware of. This class supplies a
  *       (possibly dangerous) workaround mentioned in the bug report,
  *       which may fail on non-Sun JVMs.
+ *  <li> MMAP文件映射内存机制，如果相对于你的索引文件大小，你有相当多的内存，这会是一个不错的选择。
  * </ul>
  *
  * <p>Unfortunately, because of system peculiarities, there is
