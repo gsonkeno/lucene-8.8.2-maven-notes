@@ -3784,15 +3784,18 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         if (infoStream.isEnabled("IW")) {
           infoStream.message("IW", "commit: now prepare");
         }
-        // 两阶段提交的第一阶段
+        // 两阶段提交的第一阶段,生成pending_segments_N文件
         seqNo = prepareCommitInternal();
+        if (infoStream.isEnabled("IW")) {
+          infoStream.message("IW", "commit: already prepared");
+        }
       } else {
         if (infoStream.isEnabled("IW")) {
           infoStream.message("IW", "commit: already prepared");
         }
         seqNo = pendingSeqNo;
       }
-
+        // 两阶段提交的第二阶段, 生成segments_N文件
       finishCommit();
     }
 
