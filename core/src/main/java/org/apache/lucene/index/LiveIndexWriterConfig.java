@@ -51,7 +51,10 @@ public class LiveIndexWriterConfig {
   protected volatile IndexDeletionPolicy delPolicy;
 
   /** {@link IndexCommit} that {@link IndexWriter} is
-   *  opened on. */
+   *  opened on.
+   *  执行一次提交操作（执行commit方法）后，这次提交包含的所有的段的信息用IndexCommit来描述，其中至少包含了两个信息，分别是segment_N文件跟Directory，
+   *  见 https://www.amazingkoala.com.cn/Lucene/Index/2019/1111/106.html
+   *  */
   protected volatile IndexCommit commit;
 
   /** {@link OpenMode} that {@link IndexWriter} is opened

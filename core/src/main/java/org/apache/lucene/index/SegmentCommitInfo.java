@@ -53,6 +53,7 @@ public class SegmentCommitInfo {
 
   // Normally 1+delGen, unless an exception was hit on last
   // attempt to write:
+  // 该值是一个迭代编号，用来命名一个段的下一次生成的索引文件.liv
   private long nextWriteDelGen;
 
   // Generation number of the FieldInfos (-1 if there are no updates)
@@ -60,6 +61,7 @@ public class SegmentCommitInfo {
   
   // Normally 1+fieldInfosGen, unless an exception was hit on last attempt to
   // write
+  // 该值是一个迭代编号，用来命名一个段的下一次生成的索引文件.fnm
   private long nextWriteFieldInfosGen;
   
   // Generation number of the DocValues (-1 if there are no updates)
@@ -67,6 +69,7 @@ public class SegmentCommitInfo {
   
   // Normally 1+dvGen, unless an exception was hit on last attempt to
   // write
+  // 该值是一个迭代编号，用来命名一个段的下一次生成的索引文件.dvm&&.dvd
   private long nextWriteDocValuesGen;
 
   // Track the per-field DocValues update files

@@ -973,10 +973,9 @@ final class DefaultIndexingChain extends DocConsumer {
           // corrupt and should not be flushed to a
           // new segment:
           try {
-            //处理一个field的term的倒排索引的入口，包括词条，位置，词频，payLoad等信息
+            // 处理一个field的term的倒排索引的入口，包括词条，位置，词频，payLoad等信息
             termsHashPerField.add(invertState.termAttribute.getBytesRef(), docID);
-            infoStream.message("PerField", Arrays.toString(ArrayUtil.copyOfSubArray(termsHashPerField.bytePool.buffer,0,500))
-            );
+            // infoStream.message("PerField", Arrays.toString(ArrayUtil.copyOfSubArray(termsHashPerField.bytePool.buffer,0,500)));
           } catch (MaxBytesLengthExceededException e) {
             byte[] prefix = new byte[30];
             BytesRef bigTerm = invertState.termAttribute.getBytesRef();

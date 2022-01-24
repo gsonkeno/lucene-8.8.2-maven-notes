@@ -104,7 +104,9 @@ public abstract class IndexCommit implements Comparable<IndexCommit> {
   }
 
   /** Returns the generation (the _N in segments_N) for this
-   *  IndexCommit */
+   *  IndexCommit
+   *  根据代际大小 进行相比
+   *  */
   public abstract long getGeneration();
 
   /** Returns userData, previously passed to {@link

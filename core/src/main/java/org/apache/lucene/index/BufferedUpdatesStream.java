@@ -46,7 +46,18 @@ import org.apache.lucene.util.InfoStream;
  * Each packet is assigned a generation, and each flushed or
  * merged segment is also assigned a generation, so we can
  * track which BufferedDeletes packets to apply to any given
- * segment. */
+ * segment.
+ * https://www.amazingkoala.com.cn/Lucene/Index/2019/1127/111.html
+ *
+ * BufferedUpdatesStream用来追踪（track）FrozenBufferedUpdates，主要负责执行FrozenBufferedUpdates的两个工作：
+ *
+ * 获得nextGen：它用来描述FrozenBufferedUpdates中的删除信息应该作用哪些段，见文档提交之flush（六）文章中的介绍
+ *
+ * 作用（apply）删除信息：FrozenBufferedUpdates中存放了删除信息以及更新信息（DocValues相关），为了方便描述，在下文中 删除信息、更新信息统称为删除信息。删除信息被作用到每一个段称为处理删除信息，根据作用（apply）的目标段，处理删除信息划分为两种处理方式：
+ *
+ * 全局FrozenBufferedUpdates：根据全局FrozenBufferedUpdates内的nextGen（见文档提交之flush（六））值，其删除信息将要作用到所有比该nextGen值小的段
+ * 段内FrozenBufferedUpdates：在文档提交之flush（三）中我们提到，在生成索引文件的过程中，我们只处理了部分满足删除信息，即只处理了满足删除信息TermArrayNode、TermNode（见文档的增删改（下）（part 2））的段内部分文档，而如果段内FrozenBufferedUpdates还存在删除信息QueryArrayNode、DocValuesUpdatesNode，那么根据段内FrozenBufferedUpdates就可以找出所有剩余的满足删除的文档
+ * */
 
 final class BufferedUpdatesStream implements Accountable {
 

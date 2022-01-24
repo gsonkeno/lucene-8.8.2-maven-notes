@@ -123,6 +123,10 @@ final class IndexFileDeleter implements Closeable {
    * the policy to let it delete commits.  This will remove
    * any files not referenced by any of the commits.
    * @throws IOException if there is a low-level IO error
+   * https://www.amazingkoala.com.cn/Lucene/Index/2019/1202/112.html
+   * @param files 索引目录中的所有文件
+   * @param directoryOrig  原始的索引目录
+   * @param directory      directoryOrig加锁后的索引目录
    */
   public IndexFileDeleter(String[] files, Directory directoryOrig, Directory directory, IndexDeletionPolicy policy, SegmentInfos segmentInfos,
                           InfoStream infoStream, IndexWriter writer, boolean initialIndexExists,
@@ -149,11 +153,14 @@ final class IndexFileDeleter implements Closeable {
       Matcher m = IndexFileNames.CODEC_FILE_PATTERN.matcher("");
       for (String fileName : files) {
         m.reset(fileName);
+        // 符合目标的文件 如 _0.cfe,  segments_2, pending_segments_2
         if (!fileName.endsWith("write.lock") && (m.matches() || fileName.startsWith(IndexFileNames.SEGMENTS) || fileName.startsWith(IndexFileNames.PENDING_SEGMENTS))) {
           
           // Add this file to refCounts with initial count 0:
+          // 初始化索引文件的计数引用
           getRefCount(fileName);
-          
+
+          // 针对 segments_N索引文件进行处理
           if (fileName.startsWith(IndexFileNames.SEGMENTS) && !fileName.equals(IndexFileNames.OLD_SEGMENTS_GEN)) {
             
             // This is a commit (segments or segments_N), and
@@ -168,6 +175,9 @@ final class IndexFileDeleter implements Closeable {
             if (sis.getGeneration() == segmentInfos.getGeneration()) {
               currentCommitPoint = commitPoint;
             }
+            // 为什么要根据每一个segments_N对应的SegmentInfos生成CommitPoint，并且添加到CommitPoint集合commits中：
+            // 原因是我们需要根据正在构造的IndexWriter对象中的索引删除策略来处理这些提交，而CommitPoint对象为索引删除策略作用的对象。
+            // 这里将所有的CommitPoint添加到commits中是为了在下面的流程中作为索引删除策略的输入数据进行统一处理。
             commits.add(commitPoint);
             incRef(sis, true);
               
@@ -187,6 +197,15 @@ final class IndexFileDeleter implements Closeable {
       // listing was stale (eg when index accessed via NFS
       // client with stale directory listing cache).  So we
       // try now to explicitly open this commit point:
+
+      // 这里考虑的异常是使用NFS（Network File System）网络文件系统的场景，使用该文件系统可能会导致下面的情况：
+      // 我们能通过构造IndexFileDeleter的参数获得SegmentInfos对象，并且通过SegmentInfos获得segments_N的文件名
+      // （注意只是文件名），那么segments_N文件必定是在索引目录中（
+      //  见构造IndexWriter对象（五）/构造IndexWriter对象（四）/构造IndexWriter对象（三）不同的打开模式OpenMode的内容），
+      //  但是我们在图9的流程中，如果没有读取到segments_N文件（通过是否获得currentCommitPoint对象来判断）
+      //  ，那么有可能就是NFS导致的，例如目录缓存机制的影响，那么可以根据segment_N文件名，
+      //  通过重试机制来获得它对应的SegmentInfos对象，并且生成currentCommitPoint对象，
+      //  如果还是读取不到，那么就会抛出下面的异常：
       SegmentInfos sis = null;
       try {
         sis = SegmentInfos.readCommit(directoryOrig, currentSegmentsFile);
@@ -202,7 +221,9 @@ final class IndexFileDeleter implements Closeable {
     }
 
     if (isReaderInit) {
-      // Incoming SegmentInfos may have NRT changes not yet visible in the latest commit, so we have to protect its files from deletion too:
+      // Incoming SegmentInfos may have NRT changes not yet visible in the latest commit,
+      // so we have to protect its files from deletion too:
+      // 执行检查点
       checkpoint(segmentInfos, false);
     }
 
@@ -514,6 +535,8 @@ final class IndexFileDeleter implements Closeable {
     }
 
     // Incref the files:
+    // 在后面的流程中，可能会执行索引文件的删除，如果某些索引文件被SegmentInfos引用，
+    // 那么这些索引文件不应该被删除，防止被删除的方法就是增加SegmentInfos对应的索引文件的计数引用。
     incRef(segmentInfos, isCommit);
 
     if (isCommit) {
@@ -740,6 +763,7 @@ final class IndexFileDeleter implements Closeable {
    * also passed to the deletion policy.  Note: this class
    * has a natural ordering that is inconsistent with
    * equals.
+   * 每次提交索引的细节描述，而且与索引删除策略息息相关
    */
 
   final private static class CommitPoint extends IndexCommit {

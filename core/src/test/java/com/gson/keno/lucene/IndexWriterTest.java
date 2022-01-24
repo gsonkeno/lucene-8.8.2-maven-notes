@@ -1,16 +1,16 @@
 package com.gson.keno.lucene;
 
+import com.gson.keno.lucene.index.FileOperation;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.TextField;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.PrintStreamInfoStream;
 import org.junit.Test;
 
@@ -19,6 +19,76 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
 public class IndexWriterTest {
+    private Directory getTestGsDirectory(){
+        try {
+            // 测试append属性时，不必删除文件夹
+            // FileOperation.deleteFile("./gsdata");
+            Directory directory = new MMapDirectory(Paths.get("./gsdata"));
+            return directory;
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        IndexWriterTest indexWriterTest = new IndexWriterTest();
+        indexWriterTest.testBaseWrite();
+    }
+
+    /**
+     * 测试基本的写入数据，控制输入不同的配置参数，
+     * 分析不同的输出结果，总结知识，积累经验
+     */
+    @Test
+    public void testBaseWrite() throws IOException {
+        FieldType type = new FieldType();
+        type.setStored(true);
+        type.setStoreTermVectors(true);
+        type.setStoreTermVectorPositions(true);
+        type.setStoreTermVectorPayloads(true);
+        type.setStoreTermVectorOffsets(true);
+        type.setTokenized(true);
+        // type.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+        type.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        Analyzer analyzer = new WhitespaceAnalyzer();
+        IndexWriterConfig conf = new IndexWriterConfig(analyzer);
+        // 测试append模式
+        // conf.setOpenMode(IndexWriterConfig.OpenMode.APPEND);
+
+        Directory directory = getTestGsDirectory();
+        IndexWriter indexWriter = new IndexWriter(directory, conf);
+        int count = 0;
+        Document doc = new Document();
+        while (count++ < 1) {
+            // 文档0
+            doc.add(new Field("author", "aab b aab aabbcc ", type));
+            doc.add(new Field("content", "a b", type));
+            doc.add(new IntPoint("intPoitn", 3, 4, 6));
+            indexWriter.addDocument(doc);
+
+            // 文档1
+            doc = new Document();
+            doc.add(new TextField("author", "a", Field.Store.YES));
+            doc.add(new TextField("content", "a b c h", Field.Store.YES));
+            doc.add(new TextField("title", "d a", Field.Store.YES));
+            doc.add(new NumericDocValuesField("sortByNumber", -1));
+            doc.add(new IntPoint("intPoitn", 3, 5, 6));
+            indexWriter.addDocument(doc);
+
+            // 文档2
+            doc = new Document();
+            doc.add(new TextField("author", "aab aab aabb ", Field.Store.YES));
+            doc.add(new TextField("content", "a c b e", Field.Store.YES));
+            doc.add(new NumericDocValuesField("sortByNumber", 4));
+            indexWriter.addDocument(doc);
+            indexWriter.flush();
+        }
+        // 执行commit()操作后，生成segments_1文件
+        indexWriter.commit();
+        // indexWriter关闭，释放索引文件锁
+        indexWriter.close();
+    }
 
     IndexWriter getIndexWriter() throws IOException, URISyntaxException {
         String indexDirStr = Paths.get(this.getClass().getResource("").toURI()) + "/indexPosition";

@@ -113,7 +113,8 @@ import org.apache.lucene.util.Version;
  * <li>UpdatesFiles stores the set of files that were updated in that segment
  * per field.</li>
  * </ul>
- * 
+ *
+ * SegmentInfos对象是索引文件segments_N跟.si文件在内存中的描述
  * @lucene.experimental
  */
 public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo> {

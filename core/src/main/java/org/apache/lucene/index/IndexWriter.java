@@ -288,7 +288,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
 
   private final AtomicLong changeCount = new AtomicLong(); // increments every time a change is completed
   private volatile long lastCommitChangeCount; // last changeCount that was committed
-
+  // 要回滚的索引提交列表
   private List<SegmentCommitInfo> rollbackSegments;      // list of segmentInfo we will fallback to if the commit fails
 
   private volatile SegmentInfos pendingCommit;            // set when a commit is pending (after prepareCommit() & before commit())
@@ -930,7 +930,9 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
       mergeScheduler = config.getMergeScheduler();
       mergeScheduler.initialize(infoStream, directoryOrig);
       OpenMode mode = config.getOpenMode();
+      // 目录中索引文件是否存在
       final boolean indexExists;
+      // 是create模式还是append模式
       final boolean create;
       if (mode == OpenMode.CREATE) {
         indexExists = DirectoryReader.indexExists(directory);
@@ -940,6 +942,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         create = false;
       } else {
         // CREATE_OR_APPEND - create only if an index does not exist
+        // 索引目录中是否存在索引文件，如果不存在，则进入索引create模式
         indexExists = DirectoryReader.indexExists(directory);
         create = !indexExists;
       }
@@ -1031,6 +1034,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         rollbackSegments = lastCommit.createBackupSegmentInfos();
       } else {
         // Init from either the latest commit point, or an explicit prior commit point:
+        // 从最近的提交点或显式的先前提交点进行初始化:
 
         String lastSegmentsFile = SegmentInfos.getLastCommitSegmentsFileName(files);
         if (lastSegmentsFile == null) {
@@ -1131,7 +1135,10 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
     }
   }
 
-  /** Confirms that the incoming index sort (if any) matches the existing index sort (if any).  */
+  /** Confirms that the incoming index sort (if any) matches the existing index sort (if any).
+   * 检验
+   * @see IndexWriterConfig#indexSort 是否与已有索引文件的 indexSort 属性match
+   */
   private void validateIndexSort() {
     Sort indexSort = config.getIndexSort();
     if (indexSort != null) {
@@ -1150,6 +1157,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
   static boolean isCongruentSort(Sort indexSort, Sort otherSort) {
     final SortField[] fields1 = indexSort.getSort();
     final SortField[] fields2 = otherSort.getSort();
+    // 前面数组元素个数 >= 后面元素数组个数n， 且前n个元素有序相同
     if (fields1.length > fields2.length) {
       return false;
     }
