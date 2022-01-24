@@ -3339,6 +3339,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
       maybeCloseOnTragicEvent();
     }
   }
+  // 两阶段提交的第一阶段
   // 写索引文件到存储介质中
   private long prepareCommitInternal() throws IOException {
     startCommitTime = System.nanoTime();
@@ -3385,6 +3386,8 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
               // if we flushed anything.
               flushCount.incrementAndGet();
             }
+            // 强制发布生成的段
+            // https://www.amazingkoala.com.cn/Lucene/Index/2019/0906/91.html
             publishFlushedSegments(true);
             // cannot pass triggerMerges=true here else it can lead to deadlock:
             processEvents(false);
@@ -3781,6 +3784,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         if (infoStream.isEnabled("IW")) {
           infoStream.message("IW", "commit: now prepare");
         }
+        // 两阶段提交的第一阶段
         seqNo = prepareCommitInternal();
       } else {
         if (infoStream.isEnabled("IW")) {
