@@ -3474,6 +3474,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
         if (anyChanges) {
           maybeMerge.set(true);
         }
+        // 生成pending_segments_N
         startCommit(toCommit);
         if (pendingCommit == null) {
           return -1;
