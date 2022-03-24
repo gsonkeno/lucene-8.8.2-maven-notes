@@ -824,7 +824,7 @@ public final class SegmentInfos implements Cloneable, Iterable<SegmentCommitInfo
     return files;
   }
 
-  /** Returns the committed segments_N filename. */
+  /** Returns the committed segments_N filename. pending_segment_[N]改名为segment_[N]*/
   final String finishCommit(Directory dir) throws IOException {
     if (pendingCommit == false) {
       throw new IllegalStateException("prepareCommit was not called");

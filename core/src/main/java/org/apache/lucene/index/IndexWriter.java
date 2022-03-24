@@ -288,10 +288,17 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
 
   private final AtomicLong changeCount = new AtomicLong(); // increments every time a change is completed
   private volatile long lastCommitChangeCount; // last changeCount that was committed
-  // 要回滚的索引提交列表
-  private List<SegmentCommitInfo> rollbackSegments;      // list of segmentInfo we will fallback to if the commit fails
+  /**
+   * 要回滚的索引提交列表
+   */
 
+  private List<SegmentCommitInfo> rollbackSegments;      // list of segmentInfo we will fallback to if the commit fails
+  /**
+   * @see #startCommit(SegmentInfos)
+   * 该方法设置该属性值
+   */
   private volatile SegmentInfos pendingCommit;            // set when a commit is pending (after prepareCommit() & before commit())
+
   private volatile long pendingSeqNo;
   private volatile long pendingCommitChangeCount;
 
@@ -3829,7 +3836,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
             if (infoStream.isEnabled("IW")) {
               infoStream.message("IW", "commit: pendingCommit != null");
             }
-
+            // pending_segment_[N]改名为segment_[N]文件
             committedSegmentsFileName = pendingCommit.finishCommit(directory);
 
             // we committed, if anything goes wrong after this, we are screwed and it's a tragedy:
@@ -5037,13 +5044,16 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
       if (liveInfo != null) {
         info = liveInfo;
       }
-      newSIS.add(info);
+      newSIS.add(info); // 入参sis下的SegmentCommitInfo 必须是 类成员变量 sgementInfos下的SegmentCommitInfo才能被accept
     }
 
     return newSIS;
   }
 
-  /** Walk through all files referenced by the current
+  /**
+   * 两阶段提交的第一阶段，遍历当前SegmentInfos引用的所有索引文件，
+   * 使其同步到磁盘上，如果成功，将会准备好一个新的段文件，但并不会完全提交它
+   * Walk through all files referenced by the current
    *  segmentInfos and ask the Directory to sync each file,
    *  if it wasn't already.  If that succeeds, then we
    *  prepare a new segments_N file but do not fully commit
@@ -5074,7 +5084,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable,
             infoStream.message("IW", "  skip startCommit(): no changes pending");
           }
           try {
-            deleter.decRef(filesToCommit);
+            deleter.decRef(filesToCommit); // eg _0.cfe, _0.si, _0.cfs
           } finally {
             filesToCommit = null;
           }

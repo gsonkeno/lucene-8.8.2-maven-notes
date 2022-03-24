@@ -6,6 +6,7 @@ import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.PrintStreamInfoStream;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -26,7 +27,13 @@ public class SegmentsTest {
             oldConf.setIndexDeletionPolicy(NoDeletionPolicy.INSTANCE);
             oldConf.setMergePolicy(NoMergePolicy.INSTANCE);
             oldConf.setCommitOnClose(false);
-            indexWriter = new IndexWriter(directory, oldConf);
+            oldConf.setInfoStream(new PrintStreamInfoStream(System.out));
+            indexWriter = new IndexWriter(directory, oldConf){
+                @Override
+                protected boolean isEnableTestPoints() {
+                    return true;
+                }
+            };
         } catch (IOException e) {
             e.printStackTrace();
         }
