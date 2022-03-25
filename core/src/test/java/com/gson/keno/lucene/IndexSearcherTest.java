@@ -10,6 +10,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -18,13 +19,12 @@ import java.util.List;
 public class IndexSearcherTest {
     @Test
     public void testSearchDocValues() throws IOException, URISyntaxException {
-        String indexDirStr = Paths.get(this.getClass().getResource("").toURI()) + "/indexPosition";
-        System.out.println(indexDirStr);
-        Directory directory = FSDirectory.open(Paths.get(indexDirStr));
+        String indexDir = new File(System.getProperty("user.dir")).getParentFile() + "/gsdata";
+        Directory directory = FSDirectory.open(Paths.get(indexDir));
         IndexReader reader = DirectoryReader.open(directory);
         IndexSearcher searcher = new IndexSearcher(reader);
-
-        Query query = new TermQuery(new Term("info", "abc"));
+        // 查询索引目录中索引对应的所有doc
+        Query query = new MatchAllDocsQuery();
         TopDocs topDocs = searcher.search(query, 1000);
         ScoreDoc[] scoreDocs = topDocs.scoreDocs;
         for(ScoreDoc scoreDoc : scoreDocs){
