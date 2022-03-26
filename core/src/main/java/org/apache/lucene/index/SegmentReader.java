@@ -88,6 +88,7 @@ public final class SegmentReader extends CodecReader {
     try {
       if (si.hasDeletions()) {
         // NOTE: the bitvector is stored using the regular directory, not cfs
+        // 有效的文档编号，采用Bit编码，已经排除了删除的文档
         hardLiveDocs = liveDocs = codec.liveDocsFormat().readLiveDocs(directory(), si, IOContext.READONCE);
       } else {
         assert si.getDelCount() == 0;

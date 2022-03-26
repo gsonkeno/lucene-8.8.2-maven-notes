@@ -29,3 +29,17 @@ learning notes based on lucene 8.8.2
 >文档被删除：被删除的文档通过索引文件之liv来描述
 > 
 > 文档被更新：文档的更新实际是先删除，后添加的过程，如果是更新DocValues，那么使用索引文件值.dvm、.dvd、索引文件之fnm来描述
+
+## index file introduce
+- 索引文件fnm
+> 描述的是索引中的字段(FieldInfo)信息，包括但不限于域字段的个数，以及每个域字段的信息。
+> 
+> 每个域字段包括域字段的名称(如"author","content")，<br>
+> 域字段的编号(递增), <br>
+> 是否存储词向量(termVector), <br>
+> 是否存储norm值(用于打分), <br>
+> 是否带有payload, <br>
+> 是否为软删除域(soft delete field), <br>
+> 域字段的索引方式(NONE、DOCS、DOCS_AND_FREQS、
+> DOCS_AND_FREQS_AND_POSITIONS、DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS）
+> 以及其他信息
