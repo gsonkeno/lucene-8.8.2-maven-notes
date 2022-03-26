@@ -13,3 +13,6 @@ learning notes based on lucene 8.8.2
 > 
 > 一般的indexWriter在commit文档后，就会对应一个SegmentCommitInfo。每commit一次，就
 > 会产生一个SegmentCommitInfo。
+
+- SegmentReader
+>
