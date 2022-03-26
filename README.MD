@@ -16,3 +16,16 @@ learning notes based on lucene 8.8.2
 
 - SegmentReader
 >
+
+- SegmentCoreReaders
+> 一个段的核心读对象，其持有着读一个Segment过程中共享的不变的reader。
+
+> SegmentCoreReaders中包含的索引信息中StoredFieldsReader、TermVectorsReader、PointsReader、NormsProducer是不会发生更改的内容，
+> 使得SegmentCoreReaders能够被复用。
+
+> 如果在未来的操作，该段中的索引信息发生更改，那么段中变更的索引信息会以其他索引文件来描述，
+> 这便是索引文件之liv、索引文件值.dvm、.dvd、索引文件之fnm。
+>
+>文档被删除：被删除的文档通过索引文件之liv来描述
+> 
+> 文档被更新：文档的更新实际是先删除，后添加的过程，如果是更新DocValues，那么使用索引文件值.dvm、.dvd、索引文件之fnm来描述

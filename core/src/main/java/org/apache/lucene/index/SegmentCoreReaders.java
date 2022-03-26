@@ -43,8 +43,10 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.CloseableThreadLocal;
 import org.apache.lucene.util.IOUtils;
 
-/** Holds core readers that are shared (unchanged) when
- * SegmentReader is cloned or reopened */
+/** Holds core readers that are shared (unchanged) 共享的，未发生改变的 when
+ * SegmentReader is cloned or reopened
+ * https://www.amazingkoala.com.cn/Lucene/Index/2019/1014/99.html
+ * */
 final class SegmentCoreReaders {
 
   // Counts how many other readers share the core objects
@@ -54,16 +56,35 @@ final class SegmentCoreReaders {
   // closed, even though it shares core objects with other
   // SegmentReaders:
   private final AtomicInteger ref = new AtomicInteger(1);
-  
+
+  /**
+   * 从索引文件tim&&tip、索引文件doc、索引文件pos&&pay中读取域的索引信息
+   */
   final FieldsProducer fields;
+  /**
+   * 从索引文件nvd&&nvm中读取域的打分信息
+   */
   final NormsProducer normsProducer;
 
+  /**
+   * 从索引文件fdx&&fdt中读取存储域的索引信息
+   */
   final StoredFieldsReader fieldsReaderOrig;
+  /**
+   * 从索引文件tvx&&tvd读取词向量的索引信息
+   */
   final TermVectorsReader termVectorsReaderOrig;
+  /**
+   * 从索引文件dim&&dii中读取域值为数值类型的索引信息
+   */
   final PointsReader pointsReader;
   final CompoundDirectory cfsReader;
+  /**
+   * 段的前缀名
+   */
   final String segment;
-  /** 
+  /**
+   * 从索引文件fnm读取域的信息
    * fieldinfos for this core: means gen=-1.
    * this is the exact fieldinfos these codec components saw at write.
    * in the case of DV updates, SR may hold a newer version. */

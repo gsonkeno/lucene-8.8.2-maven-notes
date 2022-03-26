@@ -22,11 +22,23 @@ import org.apache.lucene.util.Version;
 /**
  * Provides read-only metadata about a leaf.
  * @lucene.experimental
+ * https://www.amazingkoala.com.cn/Lucene/Index/2019/1014/99.html
+ *
+ *
  */
 public final class LeafMetaData {
-
+  /**
+   * 该值描述了SegmentReader读取的段所属的Segment_N文件，它是创建时的Lucene的主版本（major）号，
+   * 见文章索引文件之segments_N中的Version字段的介绍
+   */
   private final int createdVersionMajor;
+  /**
+   * 该值通过.si索引文件获得，含义见文章索引文件之si中的SegVersion字段的Min.major、Min.minor、Min.bugfix的介绍
+   */
   private final Version minVersion;
+  /**
+   * 该值同样通过.si索引文件获得，描述了段中的文档的排序规则，其含义见文章索引文件之si中的IndexSort的介绍，不赘述
+   */
   private final Sort sort;
 
   /** Expert: Sole constructor. Public for use by custom {@link LeafReader} impls. */
