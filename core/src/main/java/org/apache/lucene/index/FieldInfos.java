@@ -586,4 +586,27 @@ public class FieldInfos implements Iterable<FieldInfo> {
       return new FieldInfos(byName.values().toArray(new FieldInfo[byName.size()]));
     }
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    for(FieldInfo fi : this){
+      sb.append("[name=" + fi.name + ","
+              + "number=" + fi.number + ","
+              + "hasVectors=" + fi.hasVectors() + ","
+              + "omitsNorms=" + fi.omitsNorms() + ","
+              + "hasPayloads=" + fi.hasPayloads() + ","
+              + "isSoftDeletesField=" + fi.isSoftDeletesField() + ","
+              + "getIndexOptions=" + fi.getIndexOptions() + ","
+              + "getDocValuesType=" + fi.getDocValuesType() + ","
+              + "getDocValuesGen=" + fi.getDocValuesGen() + ","
+              + "attributes=" + fi.attributes() + ","
+              + "getPointDimensionCount=" + fi.getPointDimensionCount() + ","
+              + "getPointIndexDimensionCount=" + fi.getPointIndexDimensionCount() + ","
+              + "getPointIndexDimensionCount=" + fi.getPointNumBytes() + "] "
+
+      );
+    }
+    return "FieldInfos toString size=" + size() + ",fieldInfos=" + sb;
+  }
 }

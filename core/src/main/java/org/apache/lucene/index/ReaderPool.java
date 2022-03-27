@@ -38,7 +38,14 @@ import org.apache.lucene.util.CollectionUtil;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.InfoStream;
 
-/** Holds shared SegmentReader instances. IndexWriter uses
+/**
+ * https://www.amazingkoala.com.cn/Lucene/Index/2020/1208/183.html
+ *
+ * 该类持有一个或多个SegmentReader对象的引用，并且是shared SegmentReader，share描述的是在flush阶段、合并阶段、
+ * NRT等不同的场景中都共用ReaderPool对象中的SegmentReader。另外IndexWriter还会使用这些shared SegmentReaders来实现
+ * 例如作用（apply）删除信息、执行段的合并、NRT搜索。
+ *
+ * Holds shared SegmentReader instances. IndexWriter uses
  *  SegmentReaders for 1) applying deletes/DV updates, 2) doing
  *  merges, 3) handing out a real-time reader.  This pool
  *  reuses instances of the SegmentReaders in all these
@@ -90,6 +97,10 @@ final class ReaderPool implements Closeable {
         SegmentReader segReader = (SegmentReader) leaf.reader();
         SegmentReader newReader = new SegmentReader(segmentInfos.info(i), segReader, segReader.getLiveDocs(),
             segReader.getHardLiveDocs(), segReader.numDocs(), true);
+        // 索引文件segments_N中用来保存描述每个段的信息的元数据SegmentCommitInfo。
+        // 在图2的流程点获取IndexCommit对应的StandardDirectoryReader中通过读取索引目录中的索引文件segments_N获取每个段对应的SegmentCommitInfo，
+        // 并且将它作为readerMap的key，用来区分不同的段。
+        // 另外readerMap的value，即ReadersAndUpdates对象，它同样描述了段中的数据，
         readerMap.put(newReader.getOriginalSegmentInfo(), new ReadersAndUpdates(segmentInfos.getIndexCreatedVersionMajor(),
             newReader, newPendingDeletes(newReader, newReader.getOriginalSegmentInfo())));
       }

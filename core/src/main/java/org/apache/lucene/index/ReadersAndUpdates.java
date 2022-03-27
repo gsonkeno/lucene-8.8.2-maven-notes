@@ -61,15 +61,20 @@ final class ReadersAndUpdates {
 
   // How many further deletions we've done against
   // liveDocs vs when we loaded it or last wrote it:
+  // "新的删除信息"，与从索引目录中第一次读取liveDocs出来的，作为对比，称为新的
   private final PendingDeletes pendingDeletes;
 
   // the major version this index was created with
   private final int indexCreatedVersionMajor;
 
+  // https://www.amazingkoala.com.cn/Lucene/Index/2020/1209/184.html
+  // isMerging这个布尔值相用来描述一个段是否正在参与段的合并操作。如果一个段正在合并中，并且该段中的有些文档满足DocValues的更新条件
+  // （更新方式见文章文档的增删改（上）），那么更新信息将被暂存到图3红框标注的mergingNumericUpdates中，
+  // 它是一个map容器。当合并结束后，暂存在mergingNumericUpdates中的更新信息将作用到合并后的新段。
   // Indicates whether this segment is currently being merged. While a segment
   // is merging, all field updates are also registered in the
   // mergingNumericUpdates map. Also, calls to writeFieldUpdates merge the 
-  // updates with mergingNumericUpdates.
+  // updates with mergingNumericUpdates. 应该是 mergingDVUpdates
   // That way, when the segment is done merging, IndexWriter can apply the
   // updates on the merged segment too.
   private boolean isMerging = false;

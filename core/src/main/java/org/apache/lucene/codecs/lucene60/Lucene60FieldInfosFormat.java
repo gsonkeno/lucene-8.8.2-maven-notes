@@ -270,6 +270,7 @@ public final class Lucene60FieldInfosFormat extends FieldInfosFormat {
     final String fileName = IndexFileNames.segmentFileName(segmentInfo.name, segmentSuffix, EXTENSION);
     try (IndexOutput output = directory.createOutput(fileName, context)) {
       CodecUtil.writeIndexHeader(output, Lucene60FieldInfosFormat.CODEC_NAME, Lucene60FieldInfosFormat.FORMAT_CURRENT, segmentInfo.getId(), segmentSuffix);
+      System.out.println("Lucene60FieldInfosFormat write " + infos);
       output.writeVInt(infos.size());
       for (FieldInfo fi : infos) {
         fi.checkConsistency();

@@ -59,8 +59,7 @@ public class SegmentCommitInfo {
   // Generation number of the FieldInfos (-1 if there are no updates)
   private long fieldInfosGen;
   
-  // Normally 1+fieldInfosGen, unless an exception was hit on last attempt to
-  // write
+  // Normally 1+fieldInfosGen, unless an exception was hit on last attempt to write
   // 该值是一个迭代编号，用来命名一个段的下一次生成的索引文件.fnm
   private long nextWriteFieldInfosGen;
   
