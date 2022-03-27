@@ -580,9 +580,9 @@ final class ReadersAndUpdates {
         }
         fieldInfos = new FieldInfos(byName.values().toArray(new FieldInfo[0]));
         final DocValuesFormat docValuesFormat = codec.docValuesFormat();
-        
+        // 生成诸如 _0_1_Lucene80_0.dvd, _0_1_Lucene80_0.dvm文件
         handleDVUpdates(fieldInfos, trackingDir, docValuesFormat, reader, newDVFiles, maxDelGen, infoStream);
-
+        // 生成诸如 _0_1.fnm文件
         fieldInfosFiles = writeFieldInfosGen(fieldInfos, trackingDir, codec.fieldInfosFormat());
       } finally {
         if (reader != this.reader) {

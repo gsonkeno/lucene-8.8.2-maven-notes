@@ -40,7 +40,9 @@ public class TestDvdDvm {
         Analyzer analyzer = new WhitespaceAnalyzer();
         IndexWriterConfig conf = new IndexWriterConfig(analyzer);
         // 是否使用复合索引
-        conf.setUseCompoundFile(false);
+        conf.setUseCompoundFile(true);
+        // 不删除旧的索引信息，每次commit都是一个新的索引信息
+        // conf.setIndexDeletionPolicy(NoDeletionPolicy.INSTANCE);
 
         // 测试append模式
         // conf.setOpenMode(IndexWriterConfig.OpenMode.APPEND);
@@ -55,10 +57,13 @@ public class TestDvdDvm {
         long l1 = indexWriter.addDocument(doc);
         System.out.println("<==>addDocument no =" + l1);
 
-        long l2 = indexWriter.updateNumericDocValue(new Term("content", "h"), "price", 1);
-        System.out.println("<==>updateNumericDocValue no =" + l2);
+//        long l2 = indexWriter.updateNumericDocValue(new Term("content", "h"), "price", 1);
+//        System.out.println("<==>updateNumericDocValue no =" + l2);
+//        indexWriter.commit();
 
-        indexWriter.commit();
+        long l3 = indexWriter.updateNumericDocValue(new Term("content", "h"), "price", 3);
+        System.out.println("<==>updateNumericDocValue no =" + l3);
+
         indexWriter.close();
 
 //        IndexReader reader = DirectoryReader.open(directory);
